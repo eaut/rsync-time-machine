@@ -158,7 +158,7 @@ RETENTION_WIN_24H="$((28 * 24 * 3600))"  # 4 weeks
 __EOF__
 ) >> "$BACKUP_MARKER_FILE"
   # since we excute this file, access should be limited
-  chmod 600 $BACKUP_MARKER_FILE
+  fn_run_cmd "chmod 600 $BACKUP_MARKER_FILE"
   fn_log_info "Backup marker $BACKUP_MARKER_FILE created."
 }
 
@@ -487,8 +487,6 @@ fn_set_dest_folder() {
   else
     readonly DEST_FOLDER="$1"
   fi
-
-  printf "oooooooooooooooooooo $DEST_FOLDER\n"
 }
 
 
