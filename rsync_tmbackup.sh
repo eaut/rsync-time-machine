@@ -115,6 +115,17 @@ fn_parse_date() {
   esac
 }
 
+# Runs a command as either local or over SSH, depending on the
+# variables passed to the main function.
+fn_run_cmd() {
+  if [ -n "$SSH_CMD" ]
+  then
+    eval "$SSH_CMD '$1'"
+  else
+    eval $1
+  fi
+}
+
 fn_mkdir() {
   if ! mkdir -p -- "$1"; then
     fn_log_error "creation of directory $1 failed."
@@ -134,9 +145,9 @@ fn_find_backups() {
 
 fn_set_backup_marker() {
   if [ "$1" == "UTC" ]; then
-    echo "UTC=true" > "$BACKUP_MARKER_FILE"
+    fn_run_cmd "echo 'UTC=true' > $BACKUP_MARKER_FILE"
   else
-    echo "UTC=false" > "$BACKUP_MARKER_FILE"
+    fn_run_cmd "echo 'UTC=false' > $BACKUP_MARKER_FILE"
   fi
 ( cat <<"__EOF__"
 RETENTION_WIN_ALL="$((4 * 3600))"        # 4 hrs
@@ -435,9 +446,7 @@ fn_backup() {
     break
   done
 
-  # -----------------------------------------------------------------------------
   # Check whether rsync reported any errors
-  # -----------------------------------------------------------------------------
   if [ -n "$(grep "^rsync:" "$TMP_RSYNC_LOG")" ]; then
     fn_log_warn "Rsync reported a warning."
   fi
@@ -446,15 +455,11 @@ fn_backup() {
     exit 1
   fi
 
-  # -----------------------------------------------------------------------------
   # Add symlink to last successful backup
-  # -----------------------------------------------------------------------------
   rm -f -- "$DEST_FOLDER/latest"
   ln -s -- "$(basename "$DEST")" "$DEST_FOLDER/latest"
 
-  # -----------------------------------------------------------------------------
   # delete expired backups
-  # -----------------------------------------------------------------------------
   if [ "$OPT_KEEP_EXPIRED" != "true" ]; then
     fn_delete_backups
   elif [ ! "$(ls -A $EXPIRED_DIR)" ]; then
@@ -462,13 +467,31 @@ fn_backup() {
     rmdir -- "$EXPIRED_DIR"
   fi
 
-  # -----------------------------------------------------------------------------
   # end backup
-  # -----------------------------------------------------------------------------
   rm -f -- "$INPROGRESS_FILE"
 
   fn_log_info "backup $DEST completed successfully."
 }
+
+# Sets the destination folder from the given argument.
+# Either passes the value through if it is local or pulls
+# out the SSH values.
+fn_set_dest_folder() {
+  if [[ "$1" =~ ^[A-Za-z0-9\._%\+\-]+@[A-Za-z0-9.\-]+\:.+$ ]]
+  then
+    readonly SSH_USER=$(echo "$1" | sed -E  's/^([A-Za-z0-9\._%\+\-]+)@([A-Za-z0-9.\-]+)\:(.+)$/\1/')
+    readonly SSH_HOST=$(echo "$1" | sed -E  's/^([A-Za-z0-9\._%\+\-]+)@([A-Za-z0-9.\-]+)\:(.+)$/\2/')
+    readonly DEST_FOLDER=$(echo "$1" | sed -E  's/^([A-Za-z0-9\._%\+\-]+)@([A-Za-z0-9.\-]+)\:(.+)$/\3/')
+    readonly SSH_CMD="ssh ${SSH_USER}@${SSH_HOST}"
+    readonly SSH_FOLDER_PREFIX="${SSH_USER}@${SSH_HOST}:"
+  else
+    readonly DEST_FOLDER="$1"
+  fi
+
+  printf "oooooooooooooooooooo $DEST_FOLDER\n"
+}
+
+
 
 # -----------------------------------------------------------------------------
 # main
@@ -478,6 +501,12 @@ fn_backup() {
 OPT_VERBOSE="false"
 OPT_SYSLOG="false"
 OPT_KEEP_EXPIRED="false"
+
+SSH_USER=""
+SSH_HOST=""
+SSH_DEST_FOLDER=""
+SSH_CMD=""
+SSH_FOLDER_PREFIX=""
 
 # parse command line arguments
 while [ "$#" -gt 0 ]; do
@@ -505,8 +534,8 @@ while [ "$#" -gt 0 ]; do
         fn_log_error "Wrong number of arguments for command '$1'."
         exit 1
       fi
-      readonly DEST_FOLDER="${2%/}"
-      if [ ! -d "$DEST_FOLDER" ]; then
+      fn_set_dest_folder "${2%/}"
+      if fn_run_cmd "[ ! -d $DEST_FOLDER ]"; then
         fn_log_error "backup location $DEST_FOLDER does not exist"
         exit 1
       fi
