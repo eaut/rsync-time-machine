@@ -37,8 +37,8 @@ fn_log_error() {
 # ---
 
 fn_terminate_script() {
-       fn_log_info "SIGINT caught."
-       exit 1
+  fn_log_info "SIGINT caught."
+  exit 1
 }
 
 trap fn_terminate_script SIGINT
@@ -198,7 +198,7 @@ fn_expire_backups() {
 	local LIMIT_1H_TS=$((NOW_TS  - RETENTION_WIN_01H))	# max 1 backup per hour
 	local LIMIT_4H_TS=$((NOW_TS  - RETENTION_WIN_04H))	# max 1 backup per 4 hours
 	local LIMIT_8H_TS=$((NOW_TS  - RETENTION_WIN_08H))	# max 1 backup per 8 hours
-	local LIMIT_24H_TS=$((NOW_TS - RETENTION_WIN_24H))	# max 1 backup per day 
+	local LIMIT_24H_TS=$((NOW_TS - RETENTION_WIN_24H))	# max 1 backup per day
 
 	# Default value for $PREV_BACKUP_DATE ensures that the most recent backup is never deleted.
 	local PREV_BACKUP_DATE="0000-00-00-000000"
@@ -284,18 +284,18 @@ fn_delete_backups() {
 
 fn_backup() {
 
-	# -----------------------------------------------------------------------------
+	# ---------------------------------------------------------------------------
 	# Check that the destination directory is a backup location
-	# -----------------------------------------------------------------------------
+	# ---------------------------------------------------------------------------
 	fn_log_info "backup location: $DEST_FOLDER/"
 	fn_log_info "backup source path: $SRC_FOLDER/"
 	readonly BACKUP_MARKER_FILE="$DEST_FOLDER/backup.marker"
 	# this function sets variable $UTC dependent on backup marker content
 	fn_check_backup_marker
 
-	# -----------------------------------------------------------------------------
+	# ---------------------------------------------------------------------------
 	# Basic variables
-	# -----------------------------------------------------------------------------
+	# ---------------------------------------------------------------------------
 	if [ "$UTC" == "true" ]; then
 		readonly NOW=$(date -u +"%Y-%m-%d-%H%M%S")
 		fn_log_info "backup time base: UTC"
@@ -489,7 +489,7 @@ while [ "$#" -gt 0 ]; do
 		--version)
 			echo $APPNAME version $VERSION
 			exit 0
-		;;		
+		;;
 		-v|--verbose)
 			OPT_VERBOSE="true"
 		;;
@@ -506,10 +506,10 @@ while [ "$#" -gt 0 ]; do
 				exit 1
 			fi
 			readonly DEST_FOLDER="${2%/}"
-			if [ ! -d "$DEST_FOLDER" ]; then
-			       fn_log_error "backup location $DEST_FOLDER does not exist"
-			       exit 1
-			fi
+      if [ ! -d "$DEST_FOLDER" ]; then
+        fn_log_error "backup location $DEST_FOLDER does not exist"
+        exit 1
+      fi
 			readonly BACKUP_MARKER_FILE="$DEST_FOLDER/backup.marker"
 			if [ "$3" == "--local-time" ]; then
 				fn_set_backup_marker
@@ -523,8 +523,8 @@ while [ "$#" -gt 0 ]; do
 				fn_log_error "Wrong number of arguments for command '$1'."
 				exit 1
 			fi
-			LOC1="${2%/}"	
-			LOC2="${3%/}"	
+			LOC1="${2%/}"
+			LOC2="${3%/}"
 			rsync --dry-run -auvi "$LOC1/" "$LOC2/" | grep -E -v '^sending|^$|^sent.*sec$|^total.*RUN\)'
 			exit 0
 
@@ -536,16 +536,16 @@ while [ "$#" -gt 0 ]; do
 			fi
 			readonly SRC_FOLDER="${2%/}"
 			readonly DEST_FOLDER="${3%/}"
-			readonly EXCLUSION_FILE="$4"
-			if [ ! -d "$SRC_FOLDER/" ]; then
-			       fn_log_error "source location $SRC_FOLDER does not exist."
-			       exit 1
-			fi
-			if [ ! -d "$DEST_FOLDER/" ]; then
-			       fn_log_error "backup location $DEST_FOLDER does not exist."
-			       exit 1
-			fi
-			for ARG in "$SRC_FOLDER" "$DEST_FOLDER" "$EXCLUSION_FILE"; do
+      readonly EXCLUSION_FILE="$4"
+      if [ ! -d "$SRC_FOLDER/" ]; then
+        fn_log_error "source location $SRC_FOLDER does not exist."
+        exit 1
+      fi
+      if [ ! -d "$DEST_FOLDER/" ]; then
+        fn_log_error "backup location $DEST_FOLDER does not exist."
+        exit 1
+      fi
+      for ARG in "$SRC_FOLDER" "$DEST_FOLDER" "$EXCLUSION_FILE"; do
 				if [[ "$ARG" == *"'"* ]]; then
 					fn_log_error "Arguments may not have any single quote characters."
 					exit 1
