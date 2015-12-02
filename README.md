@@ -52,6 +52,10 @@ Options:
 	# backup /home at quarter past every hour to /mnt/backup
 	15 * * * * rsync_tmbackup.sh -v -s -k backup /home /mnt/backup /mnt/backup/backup.exclude
 
+You can also use the `drive_backup.sh` script to handle things like USB
+drives, which may only be available sometimes. Instructions on how to set
+that script up are included in the comments.
+
 ### customize backup rentention times
 
 The backup marker file is also used as configuration file for backup retention times. Defaults shown below can be modified if needed.
