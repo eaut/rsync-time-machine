@@ -157,19 +157,23 @@ fn_set_dest_folder() {
 }
 
 fn_set_backup_marker() {
-  if [ "$1" == "UTC" ]; then
-    fn_run_cmd "echo 'UTC=true' > $BACKUP_MARKER_FILE"
+  # TODO: check that the default file has the correct info in it...
+  # Add the default retention info and make the file
+  if [ -n "$SSH_CMD" ]
+  then
+    eval "scp ./backup.marker.default $SSH_FOLDER_PREFIX$BACKUP_MARKER_FILE"
+    #eval "$SSH_CMD \"$MARKER_INFO\" >> $BACKUP_MARKER_FILE"
   else
-    fn_run_cmd "echo 'UTC=false' > $BACKUP_MARKER_FILE"
+    eval "$MARKER_INFO >> $BACKUP_MARKER_FILE"
   fi
-( cat <<"__EOF__"
-RETENTION_WIN_ALL="$((4 * 3600))"        # 4 hrs
-RETENTION_WIN_01H="$((1 * 24 * 3600))"   # 24 hrs
-RETENTION_WIN_04H="$((3 * 24 * 3600))"   # 3 days
-RETENTION_WIN_08H="$((14 * 24 * 3600))"  # 2 weeks
-RETENTION_WIN_24H="$((28 * 24 * 3600))"  # 4 weeks
-__EOF__
-) >> "$BACKUP_MARKER_FILE"
+
+  # Add the UTC info to the marker
+  if [ "$1" == "UTC" ]; then
+    fn_run_cmd "echo 'UTC=true' >> $BACKUP_MARKER_FILE"
+  else
+    fn_run_cmd "echo 'UTC=false' >> $BACKUP_MARKER_FILE"
+  fi
+
   # since we excute this file, access should be limited
   fn_run_cmd "chmod 600 $BACKUP_MARKER_FILE"
   fn_log_info "Backup marker $BACKUP_MARKER_FILE created."
@@ -400,6 +404,7 @@ fn_create_backup_directory() {
 }
 
 # Builds and runs the rsync command that backs up the files.
+# TODO: Make backups immutable -- contents should be read only.
 fn_run_rsync_cmd() {
   CMD="rsync"
   CMD="$CMD --numeric-ids"
@@ -538,7 +543,7 @@ fn_backup() {
   # delete expired backups
   fn_delete_expired_backups
 
-  rm -f -- "$INPROGRESS_FILE"
+  fn_run_cmd "rm -f -- $INPROGRESS_FILE"
   fn_log_info "backup $DEST completed."
 }
 
@@ -592,6 +597,7 @@ while [ "$#" -gt 0 ]; do
       exit 0
     ;;
     diff) # TODO: UPDATE TO ACCEPT SSH
+      fn_log_warn "DIFF OVER SSH NOT YET SUPPORTED."
       if [ "$#" -ne 3 ]; then
         fn_log_error "Wrong number of arguments for command '$1'."
         exit 1
@@ -600,7 +606,6 @@ while [ "$#" -gt 0 ]; do
       LOC2="${3%/}"
       rsync --dry-run -auvi "$LOC1/" "$LOC2/" | grep -E -v '^sending|^$|^sent.*sec$|^total.*RUN\)'
       exit 0
-
     ;;
     backup)
       if [ "$#" -lt 3 ] || [ "$#" -gt 4 ]; then
