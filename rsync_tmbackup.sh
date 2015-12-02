@@ -43,13 +43,11 @@ fn_log_error() {
   echo "[ERROR] $1" 1>&2
 }
 
-
 # Make sure everything really stops when CTRL+C is pressed
 fn_terminate_script() {
   fn_log_info "SIGINT caught."
   exit 1
 }
-
 
 # clean up on exit
 fn_cleanup() {
@@ -61,8 +59,6 @@ fn_cleanup() {
     exec 40>&-
   fi
 }
-
-
 
 fn_usage() {
   fn_log_info "Usage: $APPNAME [OPTIONS] command [ARGS]"
@@ -136,11 +132,11 @@ fn_mkdir() {
 
 fn_find_backups() {
   if [ "$1" == "expired" ]; then
-    if [ -d "$EXPIRED_DIR" ]; then
-      find "$EXPIRED_DIR" -maxdepth 1 -type d -name "????-??-??-??????" | sort -r
+    if fn_run_cmd "[ -d $EXPIRED_DIR ]"; then
+      fn_run_cmd "find $EXPIRED_DIR -maxdepth 1 -type d -name \"????-??-??-??????\" | sort -r"
     fi
   else
-    find "$DEST_FOLDER" -maxdepth 1 -type d -name "????-??-??-??????" | sort -r
+    fn_run_cmd "find $DEST_FOLDER -maxdepth 1 -type d -name \"????-??-??-??????\" | sort -r"
   fi
 }
 
@@ -236,7 +232,7 @@ fn_check_backup_marker() {
 fn_mark_expired() {
   fn_check_backup_marker
   fn_mkdir "$EXPIRED_DIR"
-  mv -- "$1" "$EXPIRED_DIR/"
+  fn_run_cmd "mv -- $1 $EXPIRED_DIR/"
 }
 
 fn_expire_backups() {
@@ -244,9 +240,7 @@ fn_expire_backups() {
 
   local NOW_TS=$(fn_parse_date "$1")
 
-  #
   # backup aggregation windows and retention times
-  #
   local LIMIT_ALL_TS=$((NOW_TS - RETENTION_WIN_ALL))  # until this point in time all backups are retained
   local LIMIT_1H_TS=$((NOW_TS  - RETENTION_WIN_01H))  # max 1 backup per hour
   local LIMIT_4H_TS=$((NOW_TS  - RETENTION_WIN_04H))  # max 1 backup per 4 hours
@@ -262,6 +256,12 @@ fn_expire_backups() {
     local BACKUP_DATE=$(basename "$BACKUP")
     local BACKUP_TS=$(fn_parse_date $BACKUP_DATE)
 
+    # Skip if failed to parse date...
+    if [ -z "$BACKUP_TS" ]; then
+      fn_log_warn "Could not parse date: $BACKUP"
+      continue
+    fi
+
     local BACKUP_MONTH=${BACKUP_DATE:0:7}
     local BACKUP_DAY=${BACKUP_DATE:0:10}
     local BACKUP_HOUR=${BACKUP_DATE:11:2}
@@ -271,21 +271,16 @@ fn_expire_backups() {
     local PREV_BACKUP_HOUR=${PREV_BACKUP_DATE:11:2}
     local PREV_BACKUP_HOUR=${PREV_BACKUP_HOUR#0}  # work around bash octal numbers
 
-    # Skip if failed to parse date...
-    if [ -z "$BACKUP_TS" ]; then
-      fn_log_warn "Could not parse date: $BACKUP"
-      continue
-    fi
-    if   [ $BACKUP_TS -ge $LIMIT_ALL_TS ]; then
+    if [ $BACKUP_TS -ge $LIMIT_ALL_TS ]; then
       true
-      [ "$OPT_VERBOSE" == "true" ] && fn_log_info "  $BACKUP_DATE ALL retained"
-    elif   [ $BACKUP_TS -ge $LIMIT_1H_TS ]; then
+      fn_log_info "  $BACKUP_DATE ALL retained"
+    elif [ $BACKUP_TS -ge $LIMIT_1H_TS ]; then
       if [ "$BACKUP_DAY" == "$PREV_BACKUP_DAY" ] && \
          [ "$((BACKUP_HOUR / 1))" -eq "$((PREV_BACKUP_HOUR / 1))" ]; then
         fn_mark_expired "$BACKUP"
         fn_log_info "  $BACKUP_DATE 01H expired"
       else
-        [ "$OPT_VERBOSE" == "true" ] && fn_log_info "  $BACKUP_DATE 01H retained"
+        fn_log_info "  $BACKUP_DATE 01H retained"
       fi
     elif [ $BACKUP_TS -ge $LIMIT_4H_TS ]; then
       if [ "$BACKUP_DAY" == "$PREV_BACKUP_DAY" ] && \
@@ -293,7 +288,7 @@ fn_expire_backups() {
         fn_mark_expired "$BACKUP"
         fn_log_info "  $BACKUP_DATE 04H expired"
       else
-        [ "$OPT_VERBOSE" == "true" ] && fn_log_info "  $BACKUP_DATE 04H retained"
+        fn_log_info "  $BACKUP_DATE 04H retained"
       fi
     elif [ $BACKUP_TS -ge $LIMIT_8H_TS ]; then
       if [ "$BACKUP_DAY" == "$PREV_BACKUP_DAY" ] && \
@@ -301,25 +296,26 @@ fn_expire_backups() {
         fn_mark_expired "$BACKUP"
         fn_log_info "  $BACKUP_DATE 08H expired"
       else
-        [ "$OPT_VERBOSE" == "true" ] && fn_log_info "  $BACKUP_DATE 08H retained"
+        fn_log_info "  $BACKUP_DATE 08H retained"
       fi
     elif [ $BACKUP_TS -ge $LIMIT_24H_TS ]; then
       if [ "$BACKUP_DAY" == "$PREV_BACKUP_DAY" ]; then
         fn_mark_expired "$BACKUP"
         fn_log_info "  $BACKUP_DATE 24H expired"
       else
-        [ "$OPT_VERBOSE" == "true" ] && fn_log_info "  $BACKUP_DATE 24H retained"
+        fn_log_info "  $BACKUP_DATE 24H retained"
       fi
     else
       if [ "$BACKUP_MONTH" == "$PREV_BACKUP_MONTH" ]; then
         fn_mark_expired "$BACKUP"
         fn_log_info "  $BACKUP_DATE 01M expired"
       else
-        [ "$OPT_VERBOSE" == "true" ] && fn_log_info "  $BACKUP_DATE 01M retained"
+        fn_log_info "  $BACKUP_DATE 01M retained"
       fi
     fi
     PREV_BACKUP_DATE=$BACKUP_DATE
   done
+  fn_log_info "expiring backups complete"
 }
 
 fn_delete_backups() {
@@ -332,12 +328,13 @@ fn_delete_backups() {
       rm -rf -- "$BACKUP"
     fi
   done
-  rmdir -- "$EXPIRED_DIR"
+  fn_run_cmd "rmdir -- $EXPIRED_DIR"
 }
 
 # Sets the basic variables needed for backup
 # Assumes that $UTC, $DEST_FOLDER, $NOW, and $APPNAME have been set.
 fn_set_backup_vars() {
+  fn_log_info "setting backup vars"
   if [ "$UTC" == "true" ]; then
     readonly NOW=$(date -u +"%Y-%m-%d-%H%M%S")
     fn_log_info "backup time base: UTC"
@@ -353,25 +350,27 @@ fn_set_backup_vars() {
 
   # Better for handling spaces in filenames.
   export IFS=$'\n'
+  fn_log_info "backup vars complete"
 }
 
 # Checks if there are existing backups in the destination and
 # whether or not there was a previous backup in progress.
 # Sets the inprogress file accordingly.
 fn_check_previous_backups(){
+  fn_log_info "checking previous backups..."
   PREVIOUS_DEST="$(fn_find_backups | head -n 1)"
-  if [ -f "$INPROGRESS_FILE" ]; then
+  if fn_run_cmd "[ -f $INPROGRESS_FILE ]"; then
     if pgrep -F "$INPROGRESS_FILE" "$APPNAME" > /dev/null 2>&1 ; then
       fn_log_error "previous backup task is still active - aborting."
       exit 1
     fi
-    echo "$$" > "$INPROGRESS_FILE"
-    if [ -d "$PREVIOUS_DEST" ]; then
+    fn_run_cmd "echo $$ > $INPROGRESS_FILE"
+    if fn_run_cmd "[ -d $PREVIOUS_DEST ]"; then
       fn_log_info "previous backup $PREVIOUS_DEST was interrupted - resuming from there."
 
       # - Last backup is moved to current backup folder so that it can be resumed.
       # - 2nd to last backup becomes last backup.
-      mv -- "$PREVIOUS_DEST" "$DEST"
+      fn_run_cmd "mv -- $PREVIOUS_DEST $DEST"
       if [ "$(fn_find_backups | wc -l)" -gt 1 ]; then
         PREVIOUS_DEST="$(fn_find_backups | sed -n '2p')"
       else
@@ -379,8 +378,9 @@ fn_check_previous_backups(){
       fi
     fi
   else
-    echo "$$" > "$INPROGRESS_FILE"
+    fn_run_cmd "echo $$ > $INPROGRESS_FILE"
   fi
+  fn_log_info "previous backups complete"
 }
 
 # Moves the last expired backup and reuses it for the current one.
@@ -419,11 +419,14 @@ fn_run_rsync_cmd() {
   if [ -n "$PREVIOUS_DEST" ]; then
     # If the path is relative, it needs to be relative to the destination. To keep
     # it simple, just use an absolute path. See http://serverfault.com/a/210058/118679
-    PREVIOUS_DEST="$(cd "$PREVIOUS_DEST"; pwd)"
+    PREVIOUS_DEST=$(fn_run_cmd "cd $PREVIOUS_DEST; pwd")
+    fn_log_info "oooooooooooo $PREVIOUS_DEST"
     fn_log_info "doing incremental backup from $(basename $PREVIOUS_DEST)"
     CMD="$CMD --link-dest='$PREVIOUS_DEST'"
   fi
-  CMD="$CMD -- '$SRC_FOLDER/' '$DEST/'"
+
+  # Append the proper dest if we are using ssh. It should be empty if not.
+  CMD="$CMD -- '$SRC_FOLDER/' '$SSH_FOLDER_PREFIX$DEST/'"
 
   fn_log_info "backup name $(basename $DEST)"
   fn_log_info "rsync start"
@@ -478,17 +481,17 @@ fn_check_for_rsync_errors() {
 
 # Makes a new symlink to the latest backup directory. Overrides the old one.
 fn_create_latest_backup_symlink() {
-  rm -f -- "$DEST_FOLDER/latest"
-  ln -s -- "$(basename "$DEST")" "$DEST_FOLDER/latest"
+  fn_run_cmd "rm -f -- $DEST_FOLDER/latest"
+  fn_run_cmd "ln -s -- \"$(basename $DEST)\" $DEST_FOLDER/latest"
 }
 
 # Removes any backups that have expired, unless keep expired option was set.
 fn_delete_expired_backups() {
   if [ "$OPT_KEEP_EXPIRED" != "true" ]; then
     fn_delete_backups
-  elif [ ! "$(ls -A $EXPIRED_DIR)" ]; then
+  elif fn_run_cmd "[ ! \$(ls -A $EXPIRED_DIR) ]"; then
     # remove empty expired directory in any case
-    rmdir -- "$EXPIRED_DIR"
+    fn_run_cmd "rmdir -- $EXPIRED_DIR"
   fi
 }
 
