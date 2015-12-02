@@ -52,6 +52,10 @@ Options:
 	# backup /home at quarter past every hour to /mnt/backup
 	15 * * * * rsync_tmbackup.sh -v -s -k backup /home /mnt/backup /mnt/backup/backup.exclude
 
+You can also use the `drive_backup.sh` script to handle things like USB
+drives, which may only be available sometimes. Instructions on how to set
+that script up are included in the comments.
+
 ### customize backup rentention times
 
 The backup marker file is also used as configuration file for backup retention times. Defaults shown below can be modified if needed.
@@ -63,6 +67,19 @@ RETENTION_WIN_04H="$((3 * 24 * 3600))"   # 3 days
 RETENTION_WIN_08H="$((14 * 24 * 3600))"  # 2 weeks
 RETENTION_WIN_24H="$((28 * 24 * 3600))"  # 4 weeks
 ```
+
+### backup over SSH
+
+To send to a remote destination, start by setting up key-based authentication
+between client and server. Passwords won't work here.
+
+Only remote destinations are supported. Remote sources won't make any sense.
+
+Destinations must be in the form of <user>@<host>:<directory>.
+
+Example of backup to a NAS on the local network:
+
+    /bin/bash /path/to/rsync_tmbackup.sh /path/to/source username@xxx.xxx.xxx.xxx:backup
 
 ## Features
 
