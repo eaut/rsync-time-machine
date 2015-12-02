@@ -64,6 +64,19 @@ RETENTION_WIN_08H="$((14 * 24 * 3600))"  # 2 weeks
 RETENTION_WIN_24H="$((28 * 24 * 3600))"  # 4 weeks
 ```
 
+### backup over SSH
+
+To send to a remote destination, start by setting up key-based authentication
+between client and server. Passwords won't work here.
+
+Only remote destinations are supported. Remote sources won't make any sense.
+
+Destinations must be in the form of <user>@<host>:<directory>.
+
+Example of backup to a NAS on the local network:
+
+    /bin/bash /path/to/rsync_tmbackup.sh /path/to/source username@xxx.xxx.xxx.xxx:backup
+
 ## Features
 
 ### Improvements/changes compared to Laurent Cozic's version
