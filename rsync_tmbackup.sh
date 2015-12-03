@@ -133,19 +133,17 @@ fn_find_backups() {
 }
 
 fn_set_backup_marker() {
+  # TODO: check that the default file has the correct info in it...
+  # Add the default retention info and make the file
+  cp ./backup.marker.default "$BACKUP_MARKER_FILE"
+
+  # Add the UTC info to the marker
   if [ "$1" == "UTC" ]; then
-    echo "UTC=true" > "$BACKUP_MARKER_FILE"
+    echo "UTC=true" >> "$BACKUP_MARKER_FILE"
   else
-    echo "UTC=false" > "$BACKUP_MARKER_FILE"
+    echo "UTC=false" >> "$BACKUP_MARKER_FILE"
   fi
-( cat <<"__EOF__"
-RETENTION_WIN_ALL="$((4 * 3600))"        # 4 hrs
-RETENTION_WIN_01H="$((1 * 24 * 3600))"   # 24 hrs
-RETENTION_WIN_04H="$((3 * 24 * 3600))"   # 3 days
-RETENTION_WIN_08H="$((14 * 24 * 3600))"  # 2 weeks
-RETENTION_WIN_24H="$((28 * 24 * 3600))"  # 4 weeks
-__EOF__
-) >> "$BACKUP_MARKER_FILE"
+
   # since we excute this file, access should be limited
   chmod 600 $BACKUP_MARKER_FILE
   fn_log_info "Backup marker $BACKUP_MARKER_FILE created."
@@ -173,6 +171,7 @@ fn_check_backup_marker() {
       fn_log_info "no configuration imported from backup marker - using defaults"
     fi
     # set defaults if missing - compatibility with old backups
+    # TODO: Should use default marker file values instead of hard-coded ones.
     [ -z "$UTC" ] && UTC="false"
     [ -z "$RETENTION_WIN_ALL" ] && RETENTION_WIN_ALL="$((4 * 3600))"
     [ -z "$RETENTION_WIN_01H" ] && RETENTION_WIN_01H="$((1 * 24 * 3600))"
