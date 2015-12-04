@@ -1,0 +1,5 @@
+RETENTION_WIN_ALL="$((4 * 3600))"        # 4 hrs
+RETENTION_WIN_01H="$((1 * 24 * 3600))"   # 24 hrs
+RETENTION_WIN_04H="$((3 * 24 * 3600))"   # 3 days
+RETENTION_WIN_08H="$((14 * 24 * 3600))"  # 2 weeks
+RETENTION_WIN_24H="$((28 * 24 * 3600))"  # 4 weeks
