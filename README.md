@@ -42,9 +42,6 @@ Options:
   -v, --verbose
       increase verbosity
 
-  --version
-      display version and exit
-
   -h, --help
       this help text
 ```
