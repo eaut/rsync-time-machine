@@ -1,7 +1,9 @@
 # Time machine style backups using rsync
 ## Description
 
-Time Machine style backups with rsync. Tested on Linux, but should work on any platform since this script has no operating system or file system specific dependencies like the original.
+Time Machine style backups with rsync. Tested on Linux, but should 
+work on any platform since this script has no operating system or 
+file system specific dependencies like the original.
 
 ## Installation
 
@@ -57,10 +59,18 @@ Options:
 
 ### remote backup example
 
-To backup to a remote server you need ssh key-based authentication between client and server. Backup source has to be local.
+To backup to a remote server you need ssh key-based authentication 
+between client and server. Backup source has to be local.
 
 	# destinations must be in the form of <user>@<host>:<directory>
 	rsync_tmbackup.sh backup /path/to/source user@host:/path/to/backup
+
+#### remote shell
+
+Certain shells have a known issue with multiple line quoting. (E.g. csh.)
+If you are having issues with ssh backups, check that your default `$SHELL` 
+on the remote side is set to either sh or bash. 
+Bash is probably the safer choice, but sh does seem to work.
 
 ### crontab example
 
@@ -71,7 +81,8 @@ You can log everything to syslog by using "-s" or "--syslog".
 
 ### customize backup rentention times
 
-The backup marker file is also used as configuration file for backup retention times. Defaults shown below can be modified if needed.
+The backup marker file is also used as configuration file 
+for backup retention times. Defaults shown below can be modified if needed.
 
 ```
 RETENTION_WIN_ALL="$((4 * 3600))"        # 4 hrs
