@@ -114,6 +114,9 @@ fn_set_dest_folder() {
 }
 
 fn_run() {
+  # IMPORTANT:
+  #   commands or command sequences that make use of pipes, redirection, 
+  #   semicolons or conditional expressions have to passed as quoted strings
   if [[ -n $SSH_CMD ]]; then
     if [[ -n $SSH_ARG ]]; then
       "$SSH_CMD" "$SSH_ARG" "$SSH_DEST" "$@"
@@ -171,7 +174,7 @@ __EOF__
   fi
   fn_run "echo '$DEFAULT_CONFIG' >> '$BACKUP_MARKER_FILE'"
   # since we excute this file, access should be limited
-  fn_run chmod 600 $BACKUP_MARKER_FILE
+  fn_run chmod 600 "$BACKUP_MARKER_FILE"
   fn_log_info "Backup marker $BACKUP_MARKER_FILE created."
 }
 
