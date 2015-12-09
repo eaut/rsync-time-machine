@@ -48,7 +48,7 @@ trap fn_terminate_script SIGINT
 
 fn_cleanup() {
   if [ -n "$TMP_RSYNC_LOG" ]; then
-    rm -f -- $TMP_RSYNC_LOG
+    rm -f -- "$TMP_RSYNC_LOG"
   fi
   # close redirection to logger
   if [ "$OPT_SYSLOG" == "true" ]; then
@@ -136,8 +136,8 @@ fn_parse_date() {
   fi
   # Converts YYYY-MM-DD-HHMMSS to YYYY-MM-DD HH:MM:SS and then to Unix Epoch.
   case "$OSTYPE" in
-    darwin*) date $DATE_OPTION -j -f "%Y-%m-%d-%H%M%S" "$1" "+%s" ;;
-    *) date $DATE_OPTION -d "${1:0:10} ${1:11:2}:${1:13:2}:${1:15:2}" +%s ;;
+    darwin*) date "$DATE_OPTION" -j -f "%Y-%m-%d-%H%M%S" "$1" "+%s" ;;
+    *) date "$DATE_OPTION" -d "${1:0:10} ${1:11:2}:${1:13:2}:${1:15:2}" +%s ;;
   esac
 }
 
@@ -433,7 +433,7 @@ fn_backup() {
       CMD="$CMD '$DEST/'"
     fi
 
-    fn_log_info "backup name $(basename $DEST)"
+    fn_log_info "backup name $(basename "$DEST")"
     fn_log_info "rsync start"
 
     CMD="$CMD | grep -v -E '^[*]?deleting|^$|^.[Ld]\.\.t\.\.\.\.\.\.'"
