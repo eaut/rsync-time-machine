@@ -436,7 +436,7 @@ fn_backup() {
     fn_log_info "backup name $(basename "$DEST")"
     fn_log_info "rsync start"
 
-    CMD="$CMD | grep -v -E '^[*]?deleting|^$|^.[Ld]\.\.t\.\.\.\.\.\.'"
+    CMD="$CMD | grep --line-buffered -v -E '^[*]?deleting|^$|^.[Ld]\.\.t\.\.\.\.\.\.'"
     if [ "$OPT_VERBOSE" == "true" ]; then
       fn_log_info "$CMD"
     fi
