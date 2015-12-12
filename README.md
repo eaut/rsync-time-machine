@@ -46,6 +46,12 @@ Options:
       this help text
 ```
 
+### optional exclude file
+
+An optional exclude file can be provided as a third parameter. It should be
+compatible with the `--exclude-from` parameter of rsync. 
+See [this tutorial](http://bit.ly/21Xh0qx) for more information.
+
 ### local backup example
 
 	# setup backup location
