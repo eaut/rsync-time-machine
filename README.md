@@ -54,6 +54,14 @@ Options:
 	# backup all files from source except those mentioned in the backup.exlude file
 	rsync_tmbackup.sh backup /path/to/source /path/to/backup /path/to/backup/backup.exclude
 
+An optional exclude file can be added to the backup command that is passed as `--exclude-from` file to rsync.
+
+```
++ /path/to/source/.fileA
+- /path/to/source/.*
+- /path/to/source/junk/
+```
+
 ### remote backup example
 
 To backup to a remote server you need ssh key-based authentication 
@@ -61,13 +69,6 @@ between client and server. Backup source has to be local.
 
 	# destinations must be in the form of <user>@<host>:<directory>
 	rsync_tmbackup.sh backup /path/to/source user@host:/path/to/backup
-
-#### remote shell
-
-Certain shells have a known issue with multiple line quoting. (E.g. csh.)
-If you are having issues with ssh backups, check that your default `$SHELL` 
-on the remote side is set to either sh or bash. 
-Bash is probably the safer choice, but sh does seem to work.
 
 ### crontab example
 
@@ -121,6 +122,14 @@ RETENTION_WIN_24H="$((28 * 24 * 3600))"  # 4 weeks
 * "latest" symlink that points to the latest successful backup.
 
 * The application is just one bash script that can be easily edited.
+
+## Issues
+
+### remote shell
+
+Shells like csh/tcsh have known issues with multiple line quoting. If you are
+having issues with remote backups, check that your login `$SHELL` on the remote
+side is set to either bash or sh.
 
 ## LICENSE
 
