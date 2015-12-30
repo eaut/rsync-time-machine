@@ -77,17 +77,18 @@ You can log everything to syslog by using "-s" or "--syslog".
 	# backup /home at quarter past every hour to /mnt/backup
 	15 * * * * rsync_tmbackup.sh -v -s -k backup /home /mnt/backup /mnt/backup/backup.exclude
 
-### customize backup rentention times
+### customize backup retention times
 
-The backup marker file is also used as configuration file 
-for backup retention times. Defaults shown below can be modified if needed.
+Old backups are automatically expired and purged - default retention times see below. The backup
+marker file is also used as configuration file for backup retention times.
 
 ```
-RETENTION_WIN_ALL="$((4 * 3600))"        # 4 hrs
-RETENTION_WIN_01H="$((1 * 24 * 3600))"   # 24 hrs
-RETENTION_WIN_04H="$((3 * 24 * 3600))"   # 3 days
-RETENTION_WIN_08H="$((14 * 24 * 3600))"  # 2 weeks
-RETENTION_WIN_24H="$((28 * 24 * 3600))"  # 4 weeks
+RETENTION_WIN_ALL="$((4 * 3600))"        # within 4 hrs keep all backups
+RETENTION_WIN_01H="$((1 * 24 * 3600))"   # within 24 hrs keep 1 backup per hour
+RETENTION_WIN_04H="$((3 * 24 * 3600))"   # within 3 days keep 1 backup per 4 hours
+RETENTION_WIN_08H="$((14 * 24 * 3600))"  # within 2 weeks keep 1 backup per 8 hours
+RETENTION_WIN_24H="$((28 * 24 * 3600))"  # within 4 weeks keep 1 backup per day
+                                         # thereafter keep the most recent backup of each month
 ```
 
 ## Features
@@ -110,18 +111,10 @@ RETENTION_WIN_24H="$((28 * 24 * 3600))"  # 4 weeks
 ###  Unchanged
 
 * Each backup is on its own folder named after the current timestamp. Files can be copied and restored directly, without any intermediate tool.
-
 * Files that haven't changed from one backup to the next are hard-linked to the previous backup so take very little extra space.
-
 * Safety check - the backup will only happen if the destination has explicitly been marked as a backup destination.
-
 * Resume feature - if a backup has failed or was interrupted, the tool will resume from there on the next backup.
-
-* Automatically purge old backups - within 24 hours, all backups are kept. Within one month, the most recent backup for each day is kept. For all previous backups, the most recent of each month is kept.
-
 * "latest" symlink that points to the latest successful backup.
-
-* The application is just one bash script that can be easily edited.
 
 ## Issues
 
