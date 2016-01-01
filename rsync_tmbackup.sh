@@ -129,16 +129,15 @@ fn_run() {
 }
 
 fn_parse_date() {
-  if [ "$UTC" == "true" ]; then
-    local DATE_OPTION="-u"
-  else
-    local DATE_OPTION=""
-  fi
   # Converts YYYY-MM-DD-HHMMSS to YYYY-MM-DD HH:MM:SS and then to Unix Epoch.
   case "$OSTYPE" in
-    darwin*) date "$DATE_OPTION" -j -f "%Y-%m-%d-%H%M%S" "$1" "+%s" ;;
-    *) date "$DATE_OPTION" -d "${1:0:10} ${1:11:2}:${1:13:2}:${1:15:2}" +%s ;;
+    darwin*) local DATE_OPTIONS=("-j" "-f" "%Y-%m-%d-%H%M%S $1") ;;
+    *)       local DATE_OPTIONS=("-d" "${1:0:10} ${1:11:2}:${1:13:2}:${1:15:2}") ;;
   esac
+  if [[ $UTC == "true" ]]; then
+    DATE_OPTIONS=("-u" "${DATE_OPTIONS[@]}")
+  fi
+  date "${DATE_OPTIONS[@]}" "+%s"
 }
 
 fn_mkdir() {
@@ -234,7 +233,13 @@ fn_expire_backups() {
 
     # BACKUP_DATE format YYYY-MM-DD-HHMMSS
     local BACKUP_DATE=$(basename "$BACKUP")
-    local BACKUP_TS=$(fn_parse_date $BACKUP_DATE)
+    local BACKUP_TS=$(fn_parse_date "$BACKUP_DATE")
+
+    # Skip if failed to parse date...
+    if [[ $BACKUP_TS != +([0-9]) ]]; then
+      fn_log_warn "Could not parse date: $BACKUP_DATE"
+      continue
+    fi
 
     local BACKUP_MONTH=${BACKUP_DATE:0:7}
     local BACKUP_DAY=${BACKUP_DATE:0:10}
@@ -245,11 +250,6 @@ fn_expire_backups() {
     local PREV_BACKUP_HOUR=${PREV_BACKUP_DATE:11:2}
     local PREV_BACKUP_HOUR=${PREV_BACKUP_HOUR#0}  # work around bash octal numbers
 
-    # Skip if failed to parse date...
-    if [ -z "$BACKUP_TS" ]; then
-      fn_log_warn "Could not parse date: $BACKUP"
-      continue
-    fi
     if [ $BACKUP_TS -ge $LIMIT_ALL_TS ]; then
       true
       [ "$OPT_VERBOSE" == "true" ] && fn_log_info "  $BACKUP_DATE ALL retained"
