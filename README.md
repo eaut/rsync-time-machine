@@ -118,6 +118,11 @@ RETENTION_WIN_24H="$((28 * 24 * 3600))"  # within 4 weeks keep 1 backup per day
 
 ## Issues
 
+### date command
+
+The `date` command exists in many different flavors. Please check that your operating system
+is properly supported in the `fn_parse_date` function.
+
 ### remote shell
 
 Shells like csh/tcsh have known issues with multiple line quoting. If you are
