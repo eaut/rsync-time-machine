@@ -1,9 +1,9 @@
 # Time machine style backups using rsync
 ## Description
 
-Time Machine style backups with rsync. Tested on Linux, but should 
-work on any platform since this script has no operating system or 
-file system specific dependencies like the original.
+Time Machine style backups with rsync. Tested on Linux, but should
+work on any platform since this script has no relevant operating
+system or file system specific dependencies like the original.
 
 ## Installation
 
@@ -120,7 +120,7 @@ RETENTION_WIN_24H="$((28 * 24 * 3600))"  # within 4 weeks keep 1 backup per day
 
 ### date command
 
-The `date` command exists in many different flavors. Please check that your operating system
+The `date` command exists in different flavors. Please check that your operating system
 is properly supported in the `fn_parse_date` function.
 
 ### remote shell

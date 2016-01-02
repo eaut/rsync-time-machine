@@ -131,8 +131,10 @@ fn_run() {
 fn_parse_date() {
   # Converts YYYY-MM-DD-HHMMSS to YYYY-MM-DD HH:MM:SS and then to Unix Epoch.
   case "$OSTYPE" in
-    darwin*) local DATE_OPTIONS=("-j" "-f" "%Y-%m-%d-%H%M%S $1") ;;
-    *)       local DATE_OPTIONS=("-d" "${1:0:10} ${1:11:2}:${1:13:2}:${1:15:2}") ;;
+    darwin*|*bsd*) 
+      local DATE_OPTIONS=("-j" "-f" "%Y-%m-%d-%H%M%S $1") ;;
+    *)
+      local DATE_OPTIONS=("-d" "${1:0:10} ${1:11:2}:${1:13:2}:${1:15:2}") ;;
   esac
   if [[ $UTC == "true" ]]; then
     DATE_OPTIONS=("-u" "${DATE_OPTIONS[@]}")
