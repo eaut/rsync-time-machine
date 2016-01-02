@@ -7,24 +7,22 @@ readonly APPNAME=$(basename "${0%.sh}")
 # -----------------------------------------------------------------------------
 
 fn_log_info() {
-  if [ "$OPT_SYSLOG" == "true" ]; then
-    echo "$1" >&40
-  fi
+  [[ $OPT_SYSLOG == "true" ]] && echo "$1" >&40
   echo "$1"
 }
 
 fn_log_warn() {
-  if [ "$OPT_SYSLOG" == "true" ]; then
-    echo "[WARNING] $1" >&40
-  fi
+  [[ $OPT_SYSLOG == "true" ]] && echo "[WARNING] $1" >&40
   echo "[WARNING] $1" 1>&2
 }
 
 fn_log_error() {
-  if [ "$OPT_SYSLOG" == "true" ]; then
-    echo "[ERROR] $1" >&40
-  fi
+  [[ $OPT_SYSLOG == "true" ]]  && echo "[ERROR] $1" >&40
   echo "[ERROR] $1" 1>&2
+}
+
+fn_log_verbose() {
+  [[ $OPT_VERBOSE == "true" ]] && fn_log_info "$1"
 }
 
 # -----------------------------------------------------------------------------
@@ -32,11 +30,11 @@ fn_log_error() {
 # -----------------------------------------------------------------------------
 
 # ---
-# Make sure everything really stops when CTRL+C is pressed
+# exit with a warning and a non zero exit code when CTRL+C is pressed
 # ---
 
 fn_terminate_script() {
-  fn_log_info "SIGINT caught."
+  fn_log_warn "SIGINT caught."
   exit 1
 }
 
@@ -254,14 +252,14 @@ fn_expire_backups() {
 
     if [ $BACKUP_TS -ge $LIMIT_ALL_TS ]; then
       true
-      [ "$OPT_VERBOSE" == "true" ] && fn_log_info "  $BACKUP_DATE ALL retained"
+      fn_log_verbose "  $BACKUP_DATE ALL retained"
     elif [ $BACKUP_TS -ge $LIMIT_1H_TS ]; then
       if [ "$BACKUP_DAY" == "$PREV_BACKUP_DAY" ] && \
          [ "$((BACKUP_HOUR / 1))" -eq "$((PREV_BACKUP_HOUR / 1))" ]; then
         fn_mark_expired "$BACKUP"
         fn_log_info "  $BACKUP_DATE 01H expired"
       else
-        [ "$OPT_VERBOSE" == "true" ] && fn_log_info "  $BACKUP_DATE 01H retained"
+        fn_log_verbose "  $BACKUP_DATE 01H retained"
       fi
     elif [ $BACKUP_TS -ge $LIMIT_4H_TS ]; then
       if [ "$BACKUP_DAY" == "$PREV_BACKUP_DAY" ] && \
@@ -269,7 +267,7 @@ fn_expire_backups() {
         fn_mark_expired "$BACKUP"
         fn_log_info "  $BACKUP_DATE 04H expired"
       else
-        [ "$OPT_VERBOSE" == "true" ] && fn_log_info "  $BACKUP_DATE 04H retained"
+        fn_log_verbose "  $BACKUP_DATE 04H retained"
       fi
     elif [ $BACKUP_TS -ge $LIMIT_8H_TS ]; then
       if [ "$BACKUP_DAY" == "$PREV_BACKUP_DAY" ] && \
@@ -277,21 +275,21 @@ fn_expire_backups() {
         fn_mark_expired "$BACKUP"
         fn_log_info "  $BACKUP_DATE 08H expired"
       else
-        [ "$OPT_VERBOSE" == "true" ] && fn_log_info "  $BACKUP_DATE 08H retained"
+        fn_log_verbose "  $BACKUP_DATE 08H retained"
       fi
     elif [ $BACKUP_TS -ge $LIMIT_24H_TS ]; then
       if [ "$BACKUP_DAY" == "$PREV_BACKUP_DAY" ]; then
         fn_mark_expired "$BACKUP"
         fn_log_info "  $BACKUP_DATE 24H expired"
       else
-        [ "$OPT_VERBOSE" == "true" ] && fn_log_info "  $BACKUP_DATE 24H retained"
+        fn_log_verbose "  $BACKUP_DATE 24H retained"
       fi
     else
       if [ "$BACKUP_MONTH" == "$PREV_BACKUP_MONTH" ]; then
         fn_mark_expired "$BACKUP"
         fn_log_info "  $BACKUP_DATE 01M expired"
       else
-        [ "$OPT_VERBOSE" == "true" ] && fn_log_info "  $BACKUP_DATE 01M retained"
+        fn_log_verbose "  $BACKUP_DATE 01M retained"
       fi
     fi
     PREV_BACKUP_DATE=$BACKUP_DATE
@@ -320,6 +318,7 @@ fn_backup() {
   # ---------------------------------------------------------------------------
   # Check that the destination directory is a backup location
   # ---------------------------------------------------------------------------
+  fn_log_info "backup start"
   if [[ -n $SSH_CMD ]]; then
     fn_log_info "backup location: $SSH_DEST:$DEST_FOLDER/"
   else
@@ -415,7 +414,10 @@ fn_backup() {
     CMD="$CMD --itemize-changes"
     CMD="$CMD --human-readable"
     CMD="$CMD --log-file '$TMP_RSYNC_LOG'"
-    CMD="$CMD --verbose"
+
+    if [[ $OPT_VERBOSE == "true" ]]; then
+      CMD="$CMD --verbose"
+    fi 
 
     if [ -n "$EXCLUSION_FILE" ]; then
       # We've already checked that $EXCLUSION_FILE doesn't contain a single quote
@@ -439,9 +441,9 @@ fn_backup() {
     fn_log_info "rsync start"
 
     CMD="$CMD | grep --line-buffered -v -E '^[*]?deleting|^$|^.[Ld]\.\.t\.\.\.\.\.\.'"
-    if [ "$OPT_VERBOSE" == "true" ]; then
-      fn_log_info "$CMD"
-    fi
+
+    fn_log_verbose "$CMD"
+
     if [ "$OPT_SYSLOG" == "true" ]; then
       CMD="$CMD | tee /dev/stderr 2>&40"
     fi
