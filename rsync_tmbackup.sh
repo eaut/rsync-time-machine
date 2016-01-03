@@ -299,7 +299,7 @@ fn_expire_backups() {
 fn_delete_backups() {
   fn_check_backup_marker
   local BACKUP
-  for BACKUP in $(fn_find_backups expired) ; do
+  for BACKUP in $(fn_find_backups expired); do
     # work-around: in case of no match, bash returns "*"
     if [ "$BACKUP" != '*' ] && [ -e "$BACKUP" ]; then
       fn_log_info "deleting expired backup $(basename $BACKUP)"
@@ -501,10 +501,6 @@ fn_backup() {
   # -----------------------------------------------------------------------------
   if [ "$OPT_KEEP_EXPIRED" != "true" ]; then
     fn_delete_backups
-  elif [[ -z $(fn_find_backups expired) ]]; then
-    if fn_run "[ -d '$EXPIRED_DIR' ]"; then
-      fn_run rmdir -- "$EXPIRED_DIR"
-    fi
   fi
 
   # -----------------------------------------------------------------------------
