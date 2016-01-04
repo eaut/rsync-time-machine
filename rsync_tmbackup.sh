@@ -315,9 +315,9 @@ fn_delete_backups() {
 
 fn_backup() {
 
-  # ---------------------------------------------------------------------------
+  # ---
   # Check that the destination directory is a backup location
-  # ---------------------------------------------------------------------------
+  # ---
   fn_log_info "backup start"
   if [[ -n $SSH_CMD ]]; then
     fn_log_info "backup location: $SSH_DEST:$DEST_FOLDER/"
@@ -329,9 +329,9 @@ fn_backup() {
   # this function sets variable $UTC dependent on backup marker content
   fn_check_backup_marker
 
-  # ---------------------------------------------------------------------------
+  # ---
   # Basic variables
-  # ---------------------------------------------------------------------------
+  # ---
   if [ "$UTC" == "true" ]; then
     readonly NOW=$(date -u +"%Y-%m-%d-%H%M%S")
     fn_log_info "backup time base: UTC"
@@ -348,9 +348,9 @@ fn_backup() {
   # Better for handling spaces in filenames.
   export IFS=$'\n'
 
-  # -----------------------------------------------------------------------------
+  # ---
   # Check for previous backup operations
-  # -----------------------------------------------------------------------------
+  # ---
   PREVIOUS_DEST="$(fn_find_backups | head -n 1)"
 
   if fn_run "[ -f '$INPROGRESS_FILE' ]"; then
@@ -375,15 +375,15 @@ fn_backup() {
     fn_run "echo '$$' > '$INPROGRESS_FILE'"
   fi
 
-  # -----------------------------------------------------------------------------
+  # ---
   # expire existing backups
-  # -----------------------------------------------------------------------------
+  # ---
   fn_log_info "expiring backups..."
   fn_expire_backups "$NOW"
 
-  # -----------------------------------------------------------------------------
+  # ---
   # create backup directory
-  # -----------------------------------------------------------------------------
+  # ---
   LAST_EXPIRED="$(fn_find_backups expired | head -n 1)"
 
   if [ -n "$LAST_EXPIRED" ]; then
@@ -397,14 +397,14 @@ fn_backup() {
     fn_mkdir "$DEST"
   fi
 
-  # -----------------------------------------------------------------------------
+  # ---
   # Run in a loop to handle the "No space left on device" logic.
-  # -----------------------------------------------------------------------------
+  # ---
   while : ; do
 
-    # -----------------------------------------------------------------------------
+    # ---
     # Start backup
-    # -----------------------------------------------------------------------------
+    # ---
     CMD="rsync"
     CMD="$CMD --archive"
     CMD="$CMD --hard-links"
@@ -451,9 +451,9 @@ fn_backup() {
 
     fn_log_info "rsync end"
 
-    # -----------------------------------------------------------------------------
+    # ---
     # Check if we ran out of space
-    # -----------------------------------------------------------------------------
+    # ---
 
     # TODO: find better way to check for out of space condition without parsing log.
     NO_SPACE_LEFT="$(grep "No space left on device (28)\|Result too large (34)" "$TMP_RSYNC_LOG")"
@@ -479,9 +479,9 @@ fn_backup() {
     break
   done
 
-  # -----------------------------------------------------------------------------
+  # ---
   # Check whether rsync reported any errors
-  # -----------------------------------------------------------------------------
+  # ---
   if [ -n "$(grep "^rsync:" "$TMP_RSYNC_LOG")" ]; then
     fn_log_warn "Rsync reported a warning."
   fi
@@ -490,22 +490,22 @@ fn_backup() {
     exit 1
   fi
 
-  # -----------------------------------------------------------------------------
+  # ---
   # Add symlink to last successful backup
-  # -----------------------------------------------------------------------------
+  # ---
   fn_run rm -f -- "$DEST_FOLDER/latest"
   fn_run ln -s -- "$(basename "$DEST")" "$DEST_FOLDER/latest"
 
-  # -----------------------------------------------------------------------------
+  # ---
   # delete expired backups
-  # -----------------------------------------------------------------------------
+  # ---
   if [ "$OPT_KEEP_EXPIRED" != "true" ]; then
     fn_delete_backups
   fi
 
-  # -----------------------------------------------------------------------------
+  # ---
   # end backup
-  # -----------------------------------------------------------------------------
+  # ---
   fn_run rm -f -- "$INPROGRESS_FILE"
 
   fn_log_info "backup $(basename "$DEST") completed"
