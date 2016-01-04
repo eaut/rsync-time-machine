@@ -512,7 +512,7 @@ fn_backup() {
   # -----------------------------------------------------------------------------
   fn_run rm -f -- "$INPROGRESS_FILE"
 
-  fn_log_info "backup $DEST completed successfully."
+  fn_log_info "backup $(basename "$DEST") completed"
 }
 
 # -----------------------------------------------------------------------------
