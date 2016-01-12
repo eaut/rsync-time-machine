@@ -391,7 +391,7 @@ fn_backup() {
     # operation. this significantly speeds up backup times!
     # to work rsync needs the following options: --delete --delete-excluded
     fn_log_info "reusing expired backup $(basename $LAST_EXPIRED)"
-    fn_run mv "$LAST_EXPIRED" "$DEST"
+    fn_run mv -- "$LAST_EXPIRED" "$DEST"
   else
     # a new backup directory is needed
     fn_mkdir "$DEST"
@@ -423,7 +423,7 @@ fn_backup() {
       # We've already checked that $EXCLUSION_FILE doesn't contain a single quote
       CMD="$CMD --exclude-from '$EXCLUSION_FILE'"
     fi
-    if fn_run "[ -n '$PREVIOUS_DEST' ]"; then
+    if [[ -n $PREVIOUS_DEST ]]; then
       # If the path is relative, it needs to be relative to the destination. To keep
       # it simple, just use an absolute path. See http://serverfault.com/a/210058/118679
       PREVIOUS_DEST="$(fn_run "cd '$PREVIOUS_DEST'; pwd")"
