@@ -2,6 +2,9 @@
 
 readonly APPNAME=$(basename "${0%.sh}")
 
+readonly SSH_CMD="ssh"
+readonly SSH_ARG=""
+
 # -----------------------------------------------------------------------------
 # functions
 # -----------------------------------------------------------------------------
@@ -63,14 +66,10 @@ fn_cleanup() {
 fn_set_dest_folder() {
   # check if destination is remote
   if [[ $1 =~ ([A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+):(.+) ]]; then
-    readonly SSH_CMD="ssh"
-    readonly SSH_ARG=""
-    readonly SSH_DEST="${BASH_REMATCH[1]}"
+    readonly DEST_HOST="${BASH_REMATCH[1]}"
     readonly DEST_FOLDER="${BASH_REMATCH[2]}"
   else
-    readonly SSH_CMD=""
-    readonly SSH_ARG=""
-    readonly SSH_DEST=""
+    readonly DEST_HOST=""
     readonly DEST_FOLDER="$1"
   fi
 }
@@ -79,12 +78,8 @@ fn_run() {
   # IMPORTANT:
   #   commands or command sequences that make use of pipes, redirection, 
   #   semicolons or conditional expressions have to passed as quoted strings
-  if [[ -n $SSH_CMD ]]; then
-    if [[ -n $SSH_ARG ]]; then
-      "$SSH_CMD" "$SSH_ARG" "$SSH_DEST" "$@"
-    else
-      "$SSH_CMD" "$SSH_DEST" "$@"
-    fi
+  if [[ -n $DEST_HOST ]]; then
+    "$SSH_CMD" "$SSH_ARG --" "$DEST_HOST" "$@"
   else
     eval "$@"
   fi
@@ -281,8 +276,8 @@ fn_backup() {
   # Check that the destination directory is a backup location
   # ---
   fn_log info "backup start"
-  if [[ -n $SSH_CMD ]]; then
-    fn_log info "backup location: $SSH_DEST:$DEST_FOLDER/"
+  if [[ -n $DEST_HOST ]]; then
+    fn_log info "backup location: $DEST_HOST:$DEST_FOLDER/"
   else
     fn_log info "backup location: $DEST_FOLDER/"
   fi
@@ -381,7 +376,9 @@ fn_backup() {
     if [[ $OPT_VERBOSE == "true" ]]; then
       CMD="$CMD --verbose"
     fi 
-
+    if [[ -n $SSH_ARG ]]; then
+      CMD="$CMD -e '$SSH_CMD $SSH_ARG'"
+    fi
     if [ -n "$EXCLUSION_FILE" ]; then
       # We've already checked that $EXCLUSION_FILE doesn't contain a single quote
       CMD="$CMD --exclude-from '$EXCLUSION_FILE'"
@@ -394,8 +391,8 @@ fn_backup() {
       CMD="$CMD --link-dest='$PREVIOUS_DEST'"
     fi
     CMD="$CMD -- '$SRC_FOLDER/'"
-    if [[ -n $SSH_CMD ]]; then
-      CMD="$CMD '$SSH_DEST:$DEST/'"
+    if [[ -n $DEST_HOST ]]; then
+      CMD="$CMD '$DEST_HOST:$DEST/'"
     else
       CMD="$CMD '$DEST/'"
     fi
