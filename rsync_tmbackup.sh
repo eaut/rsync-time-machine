@@ -303,9 +303,6 @@ fn_backup() {
   readonly EXPIRED_DIR="$DEST_FOLDER/expired"
   readonly TMP_RSYNC_LOG=$(mktemp "/tmp/${APPNAME}_XXXXXXXXXX")
 
-  # Better for handling spaces in filenames.
-  export IFS=$'\n'
-
   # ---
   # Check for previous backup operations
   # ---
@@ -480,6 +477,8 @@ OPT_KEEP_EXPIRED="false"
 
 trap "exit 1" SIGINT # exit with error when CTRL+C is pressed
 trap fn_cleanup EXIT # clean up on exit
+
+export IFS=$'\n' # Better for handling spaces in filenames.
 
 # parse command line arguments
 while [ "$#" -gt 0 ]; do
