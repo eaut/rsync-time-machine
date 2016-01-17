@@ -186,22 +186,23 @@ fn_check_backup_marker() {
     fn_log_error "no write permission for this backup location - aborting."
     exit 1
   fi
-  if [ -z "$CONFIG_IMPORTED" ]; then
-    CONFIG_IMPORTED=true
-    if [[ -n $(fn_run cat "$BACKUP_MARKER_FILE") ]]; then
-      # read backup configuration from backup marker
-      eval "$(fn_run cat "$BACKUP_MARKER_FILE")"
-      fn_log_info "configuration imported from backup.marker"
-    else
-      fn_log_info "no configuration imported from backup marker - using defaults"
-    fi
-    # set defaults if missing - compatibility with old backups
-    [ -z "$UTC" ] && UTC="false"
-    [ -z "$RETENTION_WIN_ALL" ] && RETENTION_WIN_ALL="$((4 * 3600))"
-    [ -z "$RETENTION_WIN_01H" ] && RETENTION_WIN_01H="$((1 * 24 * 3600))"
-    [ -z "$RETENTION_WIN_04H" ] && RETENTION_WIN_04H="$((3 * 24 * 3600))"
-    [ -z "$RETENTION_WIN_08H" ] && RETENTION_WIN_08H="$((14 * 24 * 3600))"
-    [ -z "$RETENTION_WIN_24H" ] && RETENTION_WIN_24H="$((28 * 24 * 3600))"
+}
+
+fn_import_backup_marker() {
+  fn_check_backup_marker
+  # set defaults if missing - compatibility with old backups
+  UTC="false"
+  RETENTION_WIN_ALL=$((4 * 3600))
+  RETENTION_WIN_01H=$((1 * 24 * 3600))
+  RETENTION_WIN_04H=$((3 * 24 * 3600))
+  RETENTION_WIN_08H=$((14 * 24 * 3600))
+  RETENTION_WIN_24H=$((28 * 24 * 3600))
+  # read backup configuration from backup marker
+  if [[ -n $(fn_run cat "$BACKUP_MARKER_FILE") ]]; then
+    eval "$(fn_run cat "$BACKUP_MARKER_FILE")"
+    fn_log_info "configuration imported from backup marker"
+  else
+    fn_log_info "no configuration imported from backup marker - using defaults"
   fi
 }
 
@@ -324,7 +325,7 @@ fn_backup() {
   fn_log_info "backup source path: $SRC_FOLDER/"
   readonly BACKUP_MARKER_FILE="$DEST_FOLDER/backup.marker"
   # this function sets variable $UTC dependent on backup marker content
-  fn_check_backup_marker
+  fn_import_backup_marker
 
   # ---
   # Basic variables
