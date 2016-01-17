@@ -170,7 +170,7 @@ __EOF__
   fi
   fn_run "echo '$DEFAULT_CONFIG' >> '$BACKUP_MARKER_FILE'"
   # since we excute this file, access should be limited
-  fn_run chmod 600 "$BACKUP_MARKER_FILE"
+  fn_run chmod -- 600 "$BACKUP_MARKER_FILE"
   fn_log_info "Backup marker $BACKUP_MARKER_FILE created."
 }
 
@@ -329,16 +329,17 @@ fn_backup() {
   # ---
   # Basic variables
   # ---
+  local NOW
   if [ "$UTC" == "true" ]; then
-    readonly NOW=$(date -u +"%Y-%m-%d-%H%M%S")
+    NOW=$(date -u +"%Y-%m-%d-%H%M%S")
     fn_log_info "backup time base: UTC"
   else
-    readonly NOW=$(date +"%Y-%m-%d-%H%M%S")
+    NOW=$(date +"%Y-%m-%d-%H%M%S")
     fn_log_info "backup time base: local time"
   fi
 
-  readonly DEST="$DEST_FOLDER/$NOW"
-  readonly INPROGRESS_FILE="$DEST_FOLDER/backup.inprogress"
+  local DEST="$DEST_FOLDER/$NOW"
+  local INPROGRESS_FILE="$DEST_FOLDER/backup.inprogress"
   readonly EXPIRED_DIR="$DEST_FOLDER/expired"
   readonly TMP_RSYNC_LOG=$(mktemp "/tmp/${APPNAME}_XXXXXXXXXX")
 
@@ -348,7 +349,7 @@ fn_backup() {
   # ---
   # Check for previous backup operations
   # ---
-  PREVIOUS_DEST="$(fn_find_backups | head -n 1)"
+  local PREVIOUS_DEST="$(fn_find_backups | head -n 1)"
 
   if fn_run "[ -f '$INPROGRESS_FILE' ]"; then
     if pgrep -F "$INPROGRESS_FILE" "$APPNAME" > /dev/null 2>&1 ; then
@@ -381,7 +382,7 @@ fn_backup() {
   # ---
   # create backup directory
   # ---
-  LAST_EXPIRED="$(fn_find_backups expired | head -n 1)"
+  local LAST_EXPIRED="$(fn_find_backups expired | head -n 1)"
 
   if [ -n "$LAST_EXPIRED" ]; then
     # reuse the newest expired backup as the basis for the next rsync
@@ -402,7 +403,7 @@ fn_backup() {
     # ---
     # Start backup
     # ---
-    CMD="rsync"
+    local CMD="rsync"
     CMD="$CMD --archive"
     CMD="$CMD --hard-links"
     CMD="$CMD --numeric-ids"
@@ -453,7 +454,7 @@ fn_backup() {
     # ---
 
     # TODO: find better way to check for out of space condition without parsing log.
-    NO_SPACE_LEFT="$(grep "No space left on device (28)\|Result too large (34)" "$TMP_RSYNC_LOG")"
+    local NO_SPACE_LEFT="$(grep "No space left on device (28)\|Result too large (34)" "$TMP_RSYNC_LOG")"
 
     if [ -n "$NO_SPACE_LEFT" ]; then
       if [ -z "$(fn_find_backups expired)" ]; then
@@ -504,7 +505,6 @@ fn_backup() {
   # end backup
   # ---
   fn_run rm -f -- "$INPROGRESS_FILE"
-
   fn_log_info "backup $(basename "$DEST") completed"
 }
 
