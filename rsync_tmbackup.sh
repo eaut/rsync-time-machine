@@ -435,8 +435,7 @@ fn_backup() {
       CMD="$CMD '$DEST/'"
     fi
 
-    fn_log_info "backup name $(basename "$DEST")"
-    fn_log_info "rsync start"
+    fn_log_info "rsync started for backup $(basename "$DEST")"
 
     CMD="$CMD | grep --line-buffered -v -E '^[*]?deleting|^$|^.[Ld]\.\.t\.\.\.\.\.\.'"
 
