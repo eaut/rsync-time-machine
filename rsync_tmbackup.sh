@@ -3,37 +3,6 @@
 readonly APPNAME=$(basename "${0%.sh}")
 
 # -----------------------------------------------------------------------------
-# traps
-# -----------------------------------------------------------------------------
-
-# ---
-# exit with a warning and a non zero exit code when CTRL+C is pressed
-# ---
-
-fn_terminate_script() {
-  fn_log warning "SIGINT caught."
-  exit 1
-}
-
-trap fn_terminate_script SIGINT
-
-# ---
-# clean up on exit
-# ---
-
-fn_cleanup() {
-  if [ -n "$TMP_RSYNC_LOG" ]; then
-    rm -f -- "$TMP_RSYNC_LOG"
-  fi
-  # close redirection to logger
-  if [ "$OPT_SYSLOG" == "true" ]; then
-    exec 40>&-
-  fi
-}
-
-trap fn_cleanup EXIT
-
-# -----------------------------------------------------------------------------
 # functions
 # -----------------------------------------------------------------------------
 
@@ -79,6 +48,16 @@ fn_log() {
   [[ $TYPE == "verbose" ]] && { [[ $OPT_VERBOSE == "true" ]] && TYPE="info" || return ; }
   [[ $TYPE == "info" ]] && echo "${MSG[@]}" || { MSG=("[${TYPE^^}]" "${MSG[@]}") ; echo "${MSG[@]}" 1>&2 ; }
   [[ $OPT_SYSLOG == "true" ]] && echo "${MSG[@]}" >&40
+}
+
+fn_cleanup() {
+  if [ -n "$TMP_RSYNC_LOG" ]; then
+    rm -f -- "$TMP_RSYNC_LOG"
+  fi
+  # close redirection to logger
+  if [ "$OPT_SYSLOG" == "true" ]; then
+    exec 40>&-
+  fi
 }
 
 fn_set_dest_folder() {
@@ -501,6 +480,9 @@ fn_backup() {
 OPT_VERBOSE="false"
 OPT_SYSLOG="false"
 OPT_KEEP_EXPIRED="false"
+
+trap "exit 1" SIGINT # exit with error when CTRL+C is pressed
+trap fn_cleanup EXIT # clean up on exit
 
 # parse command line arguments
 while [ "$#" -gt 0 ]; do
