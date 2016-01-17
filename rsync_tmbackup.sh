@@ -3,29 +3,6 @@
 readonly APPNAME=$(basename "${0%.sh}")
 
 # -----------------------------------------------------------------------------
-# Log functions
-# -----------------------------------------------------------------------------
-
-fn_log_info() {
-  [[ $OPT_SYSLOG == "true" ]] && echo "$1" >&40
-  echo "$1"
-}
-
-fn_log_warn() {
-  [[ $OPT_SYSLOG == "true" ]] && echo "[WARNING] $1" >&40
-  echo "[WARNING] $1" 1>&2
-}
-
-fn_log_error() {
-  [[ $OPT_SYSLOG == "true" ]]  && echo "[ERROR] $1" >&40
-  echo "[ERROR] $1" 1>&2
-}
-
-fn_log_verbose() {
-  [[ $OPT_VERBOSE == "true" ]] && fn_log_info "$1"
-}
-
-# -----------------------------------------------------------------------------
 # traps
 # -----------------------------------------------------------------------------
 
@@ -34,7 +11,7 @@ fn_log_verbose() {
 # ---
 
 fn_terminate_script() {
-  fn_log_warn "SIGINT caught."
+  fn_log warning "SIGINT caught."
   exit 1
 }
 
@@ -61,39 +38,47 @@ trap fn_cleanup EXIT
 # -----------------------------------------------------------------------------
 
 fn_usage() {
-  fn_log_info "Usage: $APPNAME [OPTIONS] command [ARGS]"
-  fn_log_info
-  fn_log_info "Commands:"
-  fn_log_info
-  fn_log_info "  init <backup_location> [--local-time]"
-  fn_log_info "      initialize <backup_location> by creating a backup marker file."
-  fn_log_info
-  fn_log_info "         --local-time"
-  fn_log_info "             name all backups using local time, per default backups"
-  fn_log_info "             are named using UTC."
-  fn_log_info
-  fn_log_info "  backup <src_location> <backup_location> [<exclude_file>]"
-  fn_log_info "      create a Time Machine like backup from <src_location> at <backup_location>."
-  fn_log_info "      optional: exclude files in <exclude_file> from backup"
-  fn_log_info
-  fn_log_info "  diff <backup1> <backup2>"
-  fn_log_info "      show differences between two backups."
-  fn_log_info
-  fn_log_info "Options:"
-  fn_log_info
-  fn_log_info "  -s, --syslog"
-  fn_log_info "      log output to syslogd"
-  fn_log_info
-  fn_log_info "  -k, --keep-expired"
-  fn_log_info "      do not delete expired backups until they can be reused by subsequent backups or"
-  fn_log_info "      the backup location runs out of space."
-  fn_log_info
-  fn_log_info "  -v, --verbose"
-  fn_log_info "      increase verbosity"
-  fn_log_info
-  fn_log_info "  -h, --help"
-  fn_log_info "      this help text"
-  fn_log_info
+  fn_log info "Usage: $APPNAME [OPTIONS] command [ARGS]"
+  fn_log info
+  fn_log info "Commands:"
+  fn_log info
+  fn_log info "  init <backup_location> [--local-time]"
+  fn_log info "      initialize <backup_location> by creating a backup marker file."
+  fn_log info
+  fn_log info "         --local-time"
+  fn_log info "             name all backups using local time, per default backups"
+  fn_log info "             are named using UTC."
+  fn_log info
+  fn_log info "  backup <src_location> <backup_location> [<exclude_file>]"
+  fn_log info "      create a Time Machine like backup from <src_location> at <backup_location>."
+  fn_log info "      optional: exclude files in <exclude_file> from backup"
+  fn_log info
+  fn_log info "  diff <backup1> <backup2>"
+  fn_log info "      show differences between two backups."
+  fn_log info
+  fn_log info "Options:"
+  fn_log info
+  fn_log info "  -s, --syslog"
+  fn_log info "      log output to syslogd"
+  fn_log info
+  fn_log info "  -k, --keep-expired"
+  fn_log info "      do not delete expired backups until they can be reused by subsequent backups or"
+  fn_log info "      the backup location runs out of space."
+  fn_log info
+  fn_log info "  -v, --verbose"
+  fn_log info "      increase verbosity"
+  fn_log info
+  fn_log info "  -h, --help"
+  fn_log info "      this help text"
+  fn_log info
+}
+
+fn_log() {
+  local TYPE="$1"
+  local MSG="${@:2}"
+  [[ $TYPE == "verbose" ]] && { [[ $OPT_VERBOSE == "true" ]] && TYPE="info" || return ; }
+  [[ $TYPE == "info" ]] && echo "${MSG[@]}" || { MSG=("[${TYPE^^}]" "${MSG[@]}") ; echo "${MSG[@]}" 1>&2 ; }
+  [[ $OPT_SYSLOG == "true" ]] && echo "${MSG[@]}" >&40
 }
 
 fn_set_dest_folder() {
@@ -139,7 +124,7 @@ fn_parse_date() {
 
 fn_mkdir() {
   if ! fn_run mkdir -p -- "$1"; then
-    fn_log_error "creation of directory $1 failed."
+    fn_log error "creation of directory $1 failed."
     exit 1
   fi
 }
@@ -171,7 +156,7 @@ __EOF__
   fn_run "echo '$DEFAULT_CONFIG' >> '$BACKUP_MARKER_FILE'"
   # since we excute this file, access should be limited
   fn_run chmod -- 600 "$BACKUP_MARKER_FILE"
-  fn_log_info "Backup marker $BACKUP_MARKER_FILE created."
+  fn_log info "Backup marker $BACKUP_MARKER_FILE created."
 }
 
 fn_check_backup_marker() {
@@ -179,11 +164,11 @@ fn_check_backup_marker() {
   # TODO: check that the destination supports hard links
   #
   if fn_run "[ ! -f '$BACKUP_MARKER_FILE' ]"; then
-    fn_log_error "Destination does not appear to be a backup location - no backup marker file found."
+    fn_log error "Destination does not appear to be a backup location - no backup marker file found."
     exit 1
   fi
   if ! fn_run "touch -c '$BACKUP_MARKER_FILE' &> /dev/null"; then
-    fn_log_error "no write permission for this backup location - aborting."
+    fn_log error "no write permission for this backup location - aborting."
     exit 1
   fi
 }
@@ -200,9 +185,9 @@ fn_import_backup_marker() {
   # read backup configuration from backup marker
   if [[ -n $(fn_run cat "$BACKUP_MARKER_FILE") ]]; then
     eval "$(fn_run cat "$BACKUP_MARKER_FILE")"
-    fn_log_info "configuration imported from backup marker"
+    fn_log info "configuration imported from backup marker"
   else
-    fn_log_info "no configuration imported from backup marker - using defaults"
+    fn_log info "no configuration imported from backup marker - using defaults"
   fi
 }
 
@@ -235,7 +220,7 @@ fn_expire_backups() {
 
     # Skip if failed to parse date...
     if [[ $BACKUP_TS != +([0-9]) ]]; then
-      fn_log_warn "Could not parse date: $BACKUP_DATE"
+      fn_log warning "Could not parse date: $BACKUP_DATE"
       continue
     fi
 
@@ -250,44 +235,44 @@ fn_expire_backups() {
 
     if [ $BACKUP_TS -ge $LIMIT_ALL_TS ]; then
       true
-      fn_log_verbose "  $BACKUP_DATE ALL retained"
+      fn_log verbose "  $BACKUP_DATE ALL retained"
     elif [ $BACKUP_TS -ge $LIMIT_1H_TS ]; then
       if [ "$BACKUP_DAY" == "$PREV_BACKUP_DAY" ] && \
          [ "$((BACKUP_HOUR / 1))" -eq "$((PREV_BACKUP_HOUR / 1))" ]; then
         fn_mark_expired "$BACKUP"
-        fn_log_info "  $BACKUP_DATE 01H expired"
+        fn_log info "  $BACKUP_DATE 01H expired"
       else
-        fn_log_verbose "  $BACKUP_DATE 01H retained"
+        fn_log verbose "  $BACKUP_DATE 01H retained"
       fi
     elif [ $BACKUP_TS -ge $LIMIT_4H_TS ]; then
       if [ "$BACKUP_DAY" == "$PREV_BACKUP_DAY" ] && \
          [ "$((BACKUP_HOUR / 4))" -eq "$((PREV_BACKUP_HOUR / 4))" ]; then
         fn_mark_expired "$BACKUP"
-        fn_log_info "  $BACKUP_DATE 04H expired"
+        fn_log info "  $BACKUP_DATE 04H expired"
       else
-        fn_log_verbose "  $BACKUP_DATE 04H retained"
+        fn_log verbose "  $BACKUP_DATE 04H retained"
       fi
     elif [ $BACKUP_TS -ge $LIMIT_8H_TS ]; then
       if [ "$BACKUP_DAY" == "$PREV_BACKUP_DAY" ] && \
          [ "$((BACKUP_HOUR / 8))" -eq "$((PREV_BACKUP_HOUR / 8))" ]; then
         fn_mark_expired "$BACKUP"
-        fn_log_info "  $BACKUP_DATE 08H expired"
+        fn_log info "  $BACKUP_DATE 08H expired"
       else
-        fn_log_verbose "  $BACKUP_DATE 08H retained"
+        fn_log verbose "  $BACKUP_DATE 08H retained"
       fi
     elif [ $BACKUP_TS -ge $LIMIT_24H_TS ]; then
       if [ "$BACKUP_DAY" == "$PREV_BACKUP_DAY" ]; then
         fn_mark_expired "$BACKUP"
-        fn_log_info "  $BACKUP_DATE 24H expired"
+        fn_log info "  $BACKUP_DATE 24H expired"
       else
-        fn_log_verbose "  $BACKUP_DATE 24H retained"
+        fn_log verbose "  $BACKUP_DATE 24H retained"
       fi
     else
       if [ "$BACKUP_MONTH" == "$PREV_BACKUP_MONTH" ]; then
         fn_mark_expired "$BACKUP"
-        fn_log_info "  $BACKUP_DATE 01M expired"
+        fn_log info "  $BACKUP_DATE 01M expired"
       else
-        fn_log_verbose "  $BACKUP_DATE 01M retained"
+        fn_log verbose "  $BACKUP_DATE 01M retained"
       fi
     fi
     PREV_BACKUP_DATE=$BACKUP_DATE
@@ -300,7 +285,7 @@ fn_delete_backups() {
   for BACKUP in $(fn_find_backups expired); do
     # work-around: in case of no match, bash returns "*"
     if [ "$BACKUP" != '*' ] && [ -e "$BACKUP" ]; then
-      fn_log_info "deleting expired backup $(basename "$BACKUP")"
+      fn_log info "deleting expired backup $(basename "$BACKUP")"
       fn_run rm -rf -- "$BACKUP"
     fi
   done
@@ -316,13 +301,13 @@ fn_backup() {
   # ---
   # Check that the destination directory is a backup location
   # ---
-  fn_log_info "backup start"
+  fn_log info "backup start"
   if [[ -n $SSH_CMD ]]; then
-    fn_log_info "backup location: $SSH_DEST:$DEST_FOLDER/"
+    fn_log info "backup location: $SSH_DEST:$DEST_FOLDER/"
   else
-    fn_log_info "backup location: $DEST_FOLDER/"
+    fn_log info "backup location: $DEST_FOLDER/"
   fi
-  fn_log_info "backup source path: $SRC_FOLDER/"
+  fn_log info "backup source path: $SRC_FOLDER/"
   readonly BACKUP_MARKER_FILE="$DEST_FOLDER/backup.marker"
   # this function sets variable $UTC dependent on backup marker content
   fn_import_backup_marker
@@ -333,10 +318,10 @@ fn_backup() {
   local NOW
   if [ "$UTC" == "true" ]; then
     NOW=$(date -u +"%Y-%m-%d-%H%M%S")
-    fn_log_info "backup time base: UTC"
+    fn_log info "backup time base: UTC"
   else
     NOW=$(date +"%Y-%m-%d-%H%M%S")
-    fn_log_info "backup time base: local time"
+    fn_log info "backup time base: local time"
   fi
 
   local DEST="$DEST_FOLDER/$NOW"
@@ -354,12 +339,12 @@ fn_backup() {
 
   if fn_run "[ -f '$INPROGRESS_FILE' ]"; then
     if pgrep -F "$INPROGRESS_FILE" "$APPNAME" > /dev/null 2>&1 ; then
-      fn_log_error "previous backup task is still active - aborting."
+      fn_log error "previous backup task is still active - aborting."
       exit 1
     fi
     fn_run "echo '$$' > '$INPROGRESS_FILE'"
     if fn_run "[ -d '$PREVIOUS_DEST' ]"; then
-      fn_log_info "previous backup $PREVIOUS_DEST was interrupted - resuming from there."
+      fn_log info "previous backup $PREVIOUS_DEST was interrupted - resuming from there."
 
       # - Last backup is moved to current backup folder so that it can be resumed.
       # - 2nd to last backup becomes last backup.
@@ -377,7 +362,7 @@ fn_backup() {
   # ---
   # expire existing backups
   # ---
-  fn_log_info "expiring backups..."
+  fn_log info "expiring backups..."
   fn_expire_backups "$NOW"
 
   # ---
@@ -389,7 +374,7 @@ fn_backup() {
     # reuse the newest expired backup as the basis for the next rsync
     # operation. this significantly speeds up backup times!
     # to work rsync needs the following options: --delete --delete-excluded
-    fn_log_info "reusing expired backup $(basename "$LAST_EXPIRED")"
+    fn_log info "reusing expired backup $(basename "$LAST_EXPIRED")"
     fn_run mv -- "$LAST_EXPIRED" "$DEST"
   else
     # a new backup directory is needed
@@ -426,7 +411,7 @@ fn_backup() {
       # If the path is relative, it needs to be relative to the destination. To keep
       # it simple, just use an absolute path. See http://serverfault.com/a/210058/118679
       PREVIOUS_DEST="$(fn_run "cd '$PREVIOUS_DEST'; pwd")"
-      fn_log_info "doing incremental backup from $(basename "$PREVIOUS_DEST")"
+      fn_log info "doing incremental backup from $(basename "$PREVIOUS_DEST")"
       CMD="$CMD --link-dest='$PREVIOUS_DEST'"
     fi
     CMD="$CMD -- '$SRC_FOLDER/'"
@@ -436,18 +421,18 @@ fn_backup() {
       CMD="$CMD '$DEST/'"
     fi
 
-    fn_log_info "rsync started for backup $(basename "$DEST")"
+    fn_log info "rsync started for backup $(basename "$DEST")"
 
     CMD="$CMD | grep --line-buffered -v -E '^[*]?deleting|^$|^.[Ld]\.\.t\.\.\.\.\.\.'"
 
-    fn_log_verbose "$CMD"
+    fn_log verbose "$CMD"
 
     if [ "$OPT_SYSLOG" == "true" ]; then
       CMD="$CMD | tee /dev/stderr 2>&40"
     fi
     eval "$CMD"
 
-    fn_log_info "rsync end"
+    fn_log info "rsync end"
 
     # ---
     # Check if we ran out of space
@@ -459,10 +444,10 @@ fn_backup() {
     if [ -n "$NO_SPACE_LEFT" ]; then
       if [ -z "$(fn_find_backups expired)" ]; then
         # no backups scheduled for deletion, delete oldest backup
-        fn_log_warn "No space left on device, removing oldest backup"
+        fn_log warning "No space left on device, removing oldest backup"
 
         if [[ "$(fn_find_backups | wc -l)" -lt "2" ]]; then
-          fn_log_error "No space left on device, and no old backup to delete."
+          fn_log error "No space left on device, and no old backup to delete."
           exit 1
         fi
         fn_mark_expired "$(fn_find_backups | tail -n 1)"
@@ -481,10 +466,10 @@ fn_backup() {
   # Check whether rsync reported any errors
   # ---
   if [ -n "$(grep "^rsync:" "$TMP_RSYNC_LOG")" ]; then
-    fn_log_warn "Rsync reported a warning."
+    fn_log warning "Rsync reported a warning."
   fi
   if [ -n "$(grep "^rsync error:" "$TMP_RSYNC_LOG")" ]; then
-    fn_log_error "Rsync reported an error - exiting."
+    fn_log error "Rsync reported an error - exiting."
     exit 1
   fi
 
@@ -505,7 +490,7 @@ fn_backup() {
   # end backup
   # ---
   fn_run rm -f -- "$INPROGRESS_FILE"
-  fn_log_info "backup $(basename "$DEST") completed"
+  fn_log info "backup $(basename "$DEST") completed"
 }
 
 # -----------------------------------------------------------------------------
@@ -536,12 +521,12 @@ while [ "$#" -gt 0 ]; do
     ;;
     init)
       if [ "$#" -lt 2 ] || [ "$#" -gt 3 ]; then
-        fn_log_error "Wrong number of arguments for command '$1'."
+        fn_log error "Wrong number of arguments for command '$1'."
         exit 1
       fi
       fn_set_dest_folder "${2%/}"
       if fn_run "[ ! -d '$DEST_FOLDER' ]"; then
-        fn_log_error "backup location $DEST_FOLDER does not exist"
+        fn_log error "backup location $DEST_FOLDER does not exist"
         exit 1
       fi
       readonly BACKUP_MARKER_FILE="$DEST_FOLDER/backup.marker"
@@ -554,7 +539,7 @@ while [ "$#" -gt 0 ]; do
     ;;
     diff)
       if [ "$#" -ne 3 ]; then
-        fn_log_error "Wrong number of arguments for command '$1'."
+        fn_log error "Wrong number of arguments for command '$1'."
         exit 1
       fi
       LOC1="${2%/}"
@@ -565,23 +550,23 @@ while [ "$#" -gt 0 ]; do
     ;;
     backup)
       if [ "$#" -lt 3 ] || [ "$#" -gt 4 ]; then
-        fn_log_error "Wrong number of arguments for command '$1'."
+        fn_log error "Wrong number of arguments for command '$1'."
         exit 1
       fi
       readonly SRC_FOLDER="${2%/}"
       fn_set_dest_folder "${3%/}"
       readonly EXCLUSION_FILE="$4"
       if [ ! -d "$SRC_FOLDER/" ]; then
-        fn_log_error "source location $SRC_FOLDER does not exist."
+        fn_log error "source location $SRC_FOLDER does not exist."
         exit 1
       fi
       if fn_run "[ ! -d '$DEST_FOLDER' ]"; then
-        fn_log_error "backup location $DEST_FOLDER does not exist."
+        fn_log error "backup location $DEST_FOLDER does not exist."
         exit 1
       fi
       for ARG in "$SRC_FOLDER" "$DEST_FOLDER" "$EXCLUSION_FILE"; do
         if [[ "$ARG" == *"'"* ]]; then
-          fn_log_error "Arguments may not have any single quote characters."
+          fn_log error "Arguments may not have any single quote characters."
           exit 1
         fi
       done
@@ -589,13 +574,13 @@ while [ "$#" -gt 0 ]; do
       exit 0
     ;;
     *)
-      fn_log_error "Invalid argument '$1'. Use --help for more information."
+      fn_log error "Invalid argument '$1'. Use --help for more information."
       exit 1
     ;;
   esac
   shift
 done
 
-fn_log_info "Usage: $APPNAME [OPTIONS] command [ARGS]"
-fn_log_info "Try '$APPNAME --help' for more information."
+fn_log info "Usage: $APPNAME [OPTIONS] command [ARGS]"
+fn_log info "Try '$APPNAME --help' for more information."
 exit 0
