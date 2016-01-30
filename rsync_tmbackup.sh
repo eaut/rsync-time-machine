@@ -6,7 +6,9 @@ readonly APPNAME=$(basename "${0%.sh}")
 readonly SSH_CMD="ssh"
 readonly SSH_ARG=""
 
+#
 # backup config defaults (overridden by backup marker configuration)
+#
 UTC="false"  # compatibility setting for old backups without marker config
 RETENTION_WIN_ALL="$((4 * 3600))"        # 4 hrs
 RETENTION_WIN_01H="$((1 * 24 * 3600))"   # 24 hrs
@@ -14,15 +16,21 @@ RETENTION_WIN_04H="$((3 * 24 * 3600))"   # 3 days
 RETENTION_WIN_08H="$((14 * 24 * 3600))"  # 2 weeks
 RETENTION_WIN_24H="$((28 * 24 * 3600))"  # 4 weeks
 
+#
 # command line argument defaults
+#
 OPT_VERBOSE="false"
 OPT_SYSLOG="false"
 OPT_KEEP_EXPIRED="false"
 
+#
 # other global variables
+#
 DEST_HOST=""
 DEST_FOLDER=""
 BACKUP_MARKER_FILE=""
+EXPIRED_DIR=""
+TMP_RSYNC_LOG=""
 
 # -----------------------------------------------------------------------------
 # functions
@@ -272,6 +280,8 @@ fn_delete_backups() {
 
 fn_backup() {
 
+  fn_log info "backup start"
+
   local SRC_FOLDER="${1%/}"
   fn_set_dest_folder "${2%/}"
   local EXCLUSION_FILE="$3"
@@ -290,7 +300,6 @@ fn_backup() {
   # ---
   # Check that the destination directory is a backup location
   # ---
-  fn_log info "backup start"
   if [[ -n $DEST_HOST ]]; then
     fn_log info "backup location: $DEST_HOST:$DEST_FOLDER/"
   else
@@ -316,8 +325,8 @@ fn_backup() {
 
   local DEST="$DEST_FOLDER/$NOW"
   local INPROGRESS_FILE="$DEST_FOLDER/backup.inprogress"
-  readonly EXPIRED_DIR="$DEST_FOLDER/expired"
-  readonly TMP_RSYNC_LOG=$(mktemp "/tmp/${APPNAME}_XXXXXXXXXX")
+  EXPIRED_DIR="$DEST_FOLDER/expired"
+  TMP_RSYNC_LOG=$(mktemp "/tmp/${APPNAME}_XXXXXXXXXX")
 
   # ---
   # Check for previous backup operations
@@ -329,11 +338,11 @@ fn_backup() {
       fn_log error "previous backup task is still active - aborting."
       exit 1
     fi
-    fn_run "echo '$$' > '$INPROGRESS_FILE'"
-    # - Last backup is moved to current backup folder so that it can be resumed.
-    # - 2nd to last backup becomes last backup.
     fn_log info "previous backup $PREVIOUS_DEST was interrupted - resuming from there."
+    fn_run "echo '$$' > '$INPROGRESS_FILE'"
+    # last backup is moved to current backup folder so that it can be resumed.
     fn_run mv -- "$PREVIOUS_DEST" "$DEST"
+    # 2nd to last backup becomes last backup.
     if [ "$(fn_find_backups | wc -l)" -gt 1 ]; then
       PREVIOUS_DEST="$(fn_find_backups | sed -n '2p')"
     else
