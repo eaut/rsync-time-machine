@@ -5,6 +5,14 @@ readonly APPNAME=$(basename "${0%.sh}")
 readonly SSH_CMD="ssh"
 readonly SSH_ARG=""
 
+# backup config defaults (overridden by backup marker configuration)
+UTC="false"  # compatibility setting for old backups without marker config
+RETENTION_WIN_ALL=$((4 * 3600))
+RETENTION_WIN_01H=$((1 * 24 * 3600))
+RETENTION_WIN_04H=$((3 * 24 * 3600))
+RETENTION_WIN_08H=$((14 * 24 * 3600))
+RETENTION_WIN_24H=$((28 * 24 * 3600))
+
 # command line argument defaults
 OPT_VERBOSE="false"
 OPT_SYSLOG="false"
@@ -158,13 +166,6 @@ fn_check_backup_marker() {
 
 fn_import_backup_marker() {
   fn_check_backup_marker
-  # set defaults if missing - compatibility with old backups
-  UTC="false"
-  RETENTION_WIN_ALL=$((4 * 3600))
-  RETENTION_WIN_01H=$((1 * 24 * 3600))
-  RETENTION_WIN_04H=$((3 * 24 * 3600))
-  RETENTION_WIN_08H=$((14 * 24 * 3600))
-  RETENTION_WIN_24H=$((28 * 24 * 3600))
   # read backup configuration from backup marker
   if [[ -n $(fn_run cat "$BACKUP_MARKER_FILE") ]]; then
     eval "$(fn_run cat "$BACKUP_MARKER_FILE")"
