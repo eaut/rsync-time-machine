@@ -8,11 +8,11 @@ readonly SSH_ARG=""
 
 # backup config defaults (overridden by backup marker configuration)
 UTC="false"  # compatibility setting for old backups without marker config
-RETENTION_WIN_ALL=$((4 * 3600))
-RETENTION_WIN_01H=$((1 * 24 * 3600))
-RETENTION_WIN_04H=$((3 * 24 * 3600))
-RETENTION_WIN_08H=$((14 * 24 * 3600))
-RETENTION_WIN_24H=$((28 * 24 * 3600))
+RETENTION_WIN_ALL="$((4 * 3600))"        # 4 hrs
+RETENTION_WIN_01H="$((1 * 24 * 3600))"   # 24 hrs
+RETENTION_WIN_04H="$((3 * 24 * 3600))"   # 3 days
+RETENTION_WIN_08H="$((14 * 24 * 3600))"  # 2 weeks
+RETENTION_WIN_24H="$((28 * 24 * 3600))"  # 4 weeks
 
 # command line argument defaults
 OPT_VERBOSE="false"
@@ -22,6 +22,7 @@ OPT_KEEP_EXPIRED="false"
 # other global variables
 DEST_HOST=""
 DEST_FOLDER=""
+BACKUP_MARKER_FILE=""
 
 # -----------------------------------------------------------------------------
 # functions
@@ -137,26 +138,6 @@ fn_find_backups() {
   else
     fn_run find "'$DEST_FOLDER' -maxdepth 1 -type d -name '????-??-??-??????' | sort -r"
   fi
-}
-
-fn_set_backup_marker() {
-  local DEFAULT_CONFIG=$(sed -E 's/^[[:space:]]+//' <<"__EOF__"
-    RETENTION_WIN_ALL="$((4 * 3600))"        # 4 hrs
-    RETENTION_WIN_01H="$((1 * 24 * 3600))"   # 24 hrs
-    RETENTION_WIN_04H="$((3 * 24 * 3600))"   # 3 days
-    RETENTION_WIN_08H="$((14 * 24 * 3600))"  # 2 weeks
-    RETENTION_WIN_24H="$((28 * 24 * 3600))"  # 4 weeks
-__EOF__
-  )
-  if [ "$1" == "UTC" ]; then
-    DEFAULT_CONFIG=$(printf "UTC=true\n$DEFAULT_CONFIG")
-  else
-    DEFAULT_CONFIG=$(printf "UTC=false\n$DEFAULT_CONFIG")
-  fi
-  fn_run "echo '$DEFAULT_CONFIG' >> '$BACKUP_MARKER_FILE'"
-  # since we excute this file, access should be limited
-  fn_run chmod -- 600 "$BACKUP_MARKER_FILE"
-  fn_log info "Backup marker $BACKUP_MARKER_FILE created."
 }
 
 fn_check_backup_marker() {
@@ -316,7 +297,8 @@ fn_backup() {
     fn_log info "backup location: $DEST_FOLDER/"
   fi
   fn_log info "backup source path: $SRC_FOLDER/"
-  readonly BACKUP_MARKER_FILE="$DEST_FOLDER/backup.marker"
+
+  BACKUP_MARKER_FILE="$DEST_FOLDER/backup.marker"
   # this function sets variable $UTC dependent on backup marker content
   fn_import_backup_marker
 
@@ -502,12 +484,23 @@ fn_backup() {
 
 fn_init() {
   fn_set_dest_folder "${1%/}"
-  readonly BACKUP_MARKER_FILE="$DEST_FOLDER/backup.marker"
-  if [ "$2" == "--local-time" ]; then
-    fn_set_backup_marker
-  else
-    fn_set_backup_marker "UTC"
+  BACKUP_MARKER_FILE="$DEST_FOLDER/backup.marker"
+  if [[ $2 != "--local-time" ]]; then
+    UTC="true"
   fi
+  local DEFAULT_CONFIG=$(sed -E 's/^[[:space:]]+//' <<__EOF__
+    UTC="$UTC"
+    RETENTION_WIN_ALL=$RETENTION_WIN_ALL
+    RETENTION_WIN_01H=$RETENTION_WIN_01H
+    RETENTION_WIN_04H=$RETENTION_WIN_04H
+    RETENTION_WIN_08H=$RETENTION_WIN_08H
+    RETENTION_WIN_24H=$RETENTION_WIN_24H
+__EOF__
+  )
+  fn_run "echo '$DEFAULT_CONFIG' >> '$BACKUP_MARKER_FILE'"
+  # since we excute this file, access should be limited
+  fn_run chmod -- 600 "$BACKUP_MARKER_FILE"
+  fn_log info "Backup marker $BACKUP_MARKER_FILE created."
 }
 
 fn_diff() {
