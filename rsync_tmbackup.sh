@@ -498,10 +498,6 @@ fn_backup() {
 
 fn_init() {
   fn_set_dest_folder "${1%/}"
-  if fn_run "[ ! -d '$DEST_FOLDER' ]"; then
-    fn_log error "backup location $DEST_FOLDER does not exist"
-    exit 1
-  fi
   readonly BACKUP_MARKER_FILE="$DEST_FOLDER/backup.marker"
   if [ "$2" == "--local-time" ]; then
     fn_set_backup_marker
