@@ -291,9 +291,9 @@ fn_delete_backups() {
 
 fn_backup() {
 
-  SRC_FOLDER="${1%/}"
+  local SRC_FOLDER="${1%/}"
   fn_set_dest_folder "${2%/}"
-  EXCLUSION_FILE="$3"
+  local EXCLUSION_FILE="$3"
   if [ ! -d "$SRC_FOLDER/" ]; then
     fn_log error "source location $SRC_FOLDER does not exist."
     exit 1
