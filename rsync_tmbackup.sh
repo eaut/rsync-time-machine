@@ -330,17 +330,14 @@ fn_backup() {
       exit 1
     fi
     fn_run "echo '$$' > '$INPROGRESS_FILE'"
-    if fn_run "[ -d '$PREVIOUS_DEST' ]"; then
-      fn_log info "previous backup $PREVIOUS_DEST was interrupted - resuming from there."
-
-      # - Last backup is moved to current backup folder so that it can be resumed.
-      # - 2nd to last backup becomes last backup.
-      fn_run mv -- "$PREVIOUS_DEST" "$DEST"
-      if [ "$(fn_find_backups | wc -l)" -gt 1 ]; then
-        PREVIOUS_DEST="$(fn_find_backups | sed -n '2p')"
-      else
-        PREVIOUS_DEST=""
-      fi
+    # - Last backup is moved to current backup folder so that it can be resumed.
+    # - 2nd to last backup becomes last backup.
+    fn_log info "previous backup $PREVIOUS_DEST was interrupted - resuming from there."
+    fn_run mv -- "$PREVIOUS_DEST" "$DEST"
+    if [ "$(fn_find_backups | wc -l)" -gt 1 ]; then
+      PREVIOUS_DEST="$(fn_find_backups | sed -n '2p')"
+    else
+      PREVIOUS_DEST=""
     fi
   else
     fn_run "echo '$$' > '$INPROGRESS_FILE'"
