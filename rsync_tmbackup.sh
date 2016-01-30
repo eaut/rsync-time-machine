@@ -101,7 +101,11 @@ fn_run() {
   #   commands or command sequences that make use of pipes, redirection, 
   #   semicolons or conditional expressions have to passed as quoted strings
   if [[ -n $DEST_HOST ]]; then
-    "$SSH_CMD" "$SSH_ARG --" "$DEST_HOST" "$@"
+    if [[ -n $SSH_ARG ]]; then
+      "$SSH_CMD" "$SSH_ARG" -- "$DEST_HOST" "$@"
+    else
+      "$SSH_CMD" -- "$DEST_HOST" "$@"
+    fi
   else
     eval "$@"
   fi
