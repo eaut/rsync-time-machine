@@ -540,7 +540,7 @@ while [ "$#" -gt 0 ]; do
       ;;
     init)
       if [ "$#" -lt 1 ] || [ "$#" -gt 2 ]; then
-        fn_log error "Wrong number of arguments for command '$1'."
+        fn_log error "Wrong number of arguments for command '$ARG'."
         exit 1
       fi
       fn_init "$@"
@@ -548,7 +548,7 @@ while [ "$#" -gt 0 ]; do
       ;;
     diff)
       if [ "$#" -ne 2 ]; then
-        fn_log error "Wrong number of arguments for command '$1'."
+        fn_log error "Wrong number of arguments for command '$ARG'."
         exit 1
       fi
       fn_diff "$@"
@@ -556,14 +556,14 @@ while [ "$#" -gt 0 ]; do
       ;;
     backup)
       if [ "$#" -lt 2 ] || [ "$#" -gt 3 ]; then
-        fn_log error "Wrong number of arguments for command '$1'."
+        fn_log error "Wrong number of arguments for command '$ARG'."
         exit 1
       fi
       fn_backup "$@"
       exit 0
       ;;
     *)
-      fn_log error "Invalid argument '$1'. Use --help for more information."
+      fn_log error "Invalid argument '$ARG'. Use --help for more information."
       exit 1
       ;;
   esac
