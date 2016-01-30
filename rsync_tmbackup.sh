@@ -5,6 +5,11 @@ readonly APPNAME=$(basename "${0%.sh}")
 readonly SSH_CMD="ssh"
 readonly SSH_ARG=""
 
+# command line argument defaults
+OPT_VERBOSE="false"
+OPT_SYSLOG="false"
+OPT_KEEP_EXPIRED="false"
+
 # -----------------------------------------------------------------------------
 # functions
 # -----------------------------------------------------------------------------
@@ -469,11 +474,6 @@ fn_backup() {
 # -----------------------------------------------------------------------------
 # main
 # -----------------------------------------------------------------------------
-
-# set defaults
-OPT_VERBOSE="false"
-OPT_SYSLOG="false"
-OPT_KEEP_EXPIRED="false"
 
 trap "exit 1" SIGINT # exit with error when CTRL+C is pressed
 trap fn_cleanup EXIT # clean up on exit
