@@ -77,6 +77,10 @@ fn_set_dest_folder() {
     readonly DEST_HOST=""
     readonly DEST_FOLDER="$1"
   fi
+  if fn_run "[ ! -d '$DEST_FOLDER' ]"; then
+    fn_log error "backup location $DEST_FOLDER does not exist."
+    exit 1
+  fi
 }
 
 fn_run() {
@@ -277,6 +281,21 @@ fn_delete_backups() {
 
 fn_backup() {
 
+  SRC_FOLDER="${1%/}"
+  fn_set_dest_folder "${2%/}"
+  EXCLUSION_FILE="$3"
+  if [ ! -d "$SRC_FOLDER/" ]; then
+    fn_log error "source location $SRC_FOLDER does not exist."
+    exit 1
+  fi
+  local ARG
+  for ARG in "$SRC_FOLDER" "$DEST_FOLDER" "$EXCLUSION_FILE"; do
+    if [[ "$ARG" == *"'"* ]]; then
+      fn_log error "Arguments may not have any single quote characters."
+      exit 1
+    fi
+  done
+
   # ---
   # Check that the destination directory is a backup location
   # ---
@@ -471,6 +490,27 @@ fn_backup() {
   fn_log info "backup $(basename "$DEST") completed"
 }
 
+fn_init() {
+  fn_set_dest_folder "${1%/}"
+  if fn_run "[ ! -d '$DEST_FOLDER' ]"; then
+    fn_log error "backup location $DEST_FOLDER does not exist"
+    exit 1
+  fi
+  readonly BACKUP_MARKER_FILE="$DEST_FOLDER/backup.marker"
+  if [ "$2" == "--local-time" ]; then
+    fn_set_backup_marker
+  else
+    fn_set_backup_marker "UTC"
+  fi
+}
+
+fn_diff() {
+  LOC1="${2%/}"
+  LOC2="${3%/}"
+  # TODO: something needs to be done here for ssh support
+  rsync --dry-run -auvi "$LOC1/" "$LOC2/" | grep -E -v '^sending|^$|^sent.*sec$|^total.*RUN\)'
+}
+
 # -----------------------------------------------------------------------------
 # main
 # -----------------------------------------------------------------------------
@@ -482,81 +522,52 @@ export IFS=$'\n' # Better for handling spaces in filenames.
 
 # parse command line arguments
 while [ "$#" -gt 0 ]; do
-  case "$1" in
+  ARG="$1"
+  shift
+  case "$ARG" in
     -h|--help)
       fn_usage
       exit 0
-    ;;
+      ;;
     -v|--verbose)
       OPT_VERBOSE="true"
-    ;;
+      ;;
     -s|--syslog)
       OPT_SYSLOG="true"
       exec 40> >(exec logger -t "$APPNAME[$$]")
-    ;;
+      ;;
     -k|--keep-expired)
       OPT_KEEP_EXPIRED="true"
-    ;;
+      ;;
     init)
+      if [ "$#" -lt 1 ] || [ "$#" -gt 2 ]; then
+        fn_log error "Wrong number of arguments for command '$1'."
+        exit 1
+      fi
+      fn_init "$@"
+      exit 0
+      ;;
+    diff)
+      if [ "$#" -ne 2 ]; then
+        fn_log error "Wrong number of arguments for command '$1'."
+        exit 1
+      fi
+      fn_diff "$@"
+      exit 0
+      ;;
+    backup)
       if [ "$#" -lt 2 ] || [ "$#" -gt 3 ]; then
         fn_log error "Wrong number of arguments for command '$1'."
         exit 1
       fi
-      fn_set_dest_folder "${2%/}"
-      if fn_run "[ ! -d '$DEST_FOLDER' ]"; then
-        fn_log error "backup location $DEST_FOLDER does not exist"
-        exit 1
-      fi
-      readonly BACKUP_MARKER_FILE="$DEST_FOLDER/backup.marker"
-      if [ "$3" == "--local-time" ]; then
-        fn_set_backup_marker
-      else
-        fn_set_backup_marker "UTC"
-      fi
+      fn_backup "$@"
       exit 0
-    ;;
-    diff)
-      if [ "$#" -ne 3 ]; then
-        fn_log error "Wrong number of arguments for command '$1'."
-        exit 1
-      fi
-      LOC1="${2%/}"
-      LOC2="${3%/}"
-      # TODO: something needs to be done here for ssh support
-      rsync --dry-run -auvi "$LOC1/" "$LOC2/" | grep -E -v '^sending|^$|^sent.*sec$|^total.*RUN\)'
-      exit 0
-    ;;
-    backup)
-      if [ "$#" -lt 3 ] || [ "$#" -gt 4 ]; then
-        fn_log error "Wrong number of arguments for command '$1'."
-        exit 1
-      fi
-      readonly SRC_FOLDER="${2%/}"
-      fn_set_dest_folder "${3%/}"
-      readonly EXCLUSION_FILE="$4"
-      if [ ! -d "$SRC_FOLDER/" ]; then
-        fn_log error "source location $SRC_FOLDER does not exist."
-        exit 1
-      fi
-      if fn_run "[ ! -d '$DEST_FOLDER' ]"; then
-        fn_log error "backup location $DEST_FOLDER does not exist."
-        exit 1
-      fi
-      for ARG in "$SRC_FOLDER" "$DEST_FOLDER" "$EXCLUSION_FILE"; do
-        if [[ "$ARG" == *"'"* ]]; then
-          fn_log error "Arguments may not have any single quote characters."
-          exit 1
-        fi
-      done
-      fn_backup
-      exit 0
-    ;;
+      ;;
     *)
       fn_log error "Invalid argument '$1'. Use --help for more information."
       exit 1
-    ;;
+      ;;
   esac
-  shift
 done
 
 fn_log info "Usage: $APPNAME [OPTIONS] command [ARGS]"
