@@ -2,6 +2,7 @@
 
 readonly APPNAME=$(basename "${0%.sh}")
 
+# ssh argument defaults
 readonly SSH_CMD="ssh"
 readonly SSH_ARG=""
 
@@ -17,6 +18,10 @@ RETENTION_WIN_24H=$((28 * 24 * 3600))
 OPT_VERBOSE="false"
 OPT_SYSLOG="false"
 OPT_KEEP_EXPIRED="false"
+
+# other global variables
+DEST_HOST=""
+DEST_FOLDER=""
 
 # -----------------------------------------------------------------------------
 # functions
@@ -79,11 +84,11 @@ fn_cleanup() {
 fn_set_dest_folder() {
   # check if destination is remote
   if [[ $1 =~ ([A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+):(.+) ]]; then
-    readonly DEST_HOST="${BASH_REMATCH[1]}"
-    readonly DEST_FOLDER="${BASH_REMATCH[2]}"
+    DEST_HOST="${BASH_REMATCH[1]}"
+    DEST_FOLDER="${BASH_REMATCH[2]}"
   else
-    readonly DEST_HOST=""
-    readonly DEST_FOLDER="$1"
+    DEST_HOST=""
+    DEST_FOLDER="$1"
   fi
   if fn_run "[ ! -d '$DEST_FOLDER' ]"; then
     fn_log error "backup location $DEST_FOLDER does not exist."
