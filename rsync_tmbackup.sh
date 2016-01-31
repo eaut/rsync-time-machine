@@ -292,33 +292,24 @@ fn_backup() {
   fn_log info "backup start"
 
   local SRC_FOLDER="${1%/}"
-  fn_set_dest_folder "${2%/}"
-  local EXCLUSION_FILE="$3"
-  if [ ! -d "$SRC_FOLDER/" ]; then
-    fn_log error "source location $SRC_FOLDER does not exist."
+  if [[ -d $SRC_FOLDER ]]; then
+    fn_log info "backup source path: $SRC_FOLDER"
+  else
+    fn_log error "backup source path $SRC_FOLDER does not exist."
     exit 1
   fi
-  local ARG
-  for ARG in "$SRC_FOLDER" "$DEST_FOLDER" "$EXCLUSION_FILE"; do
-    if [[ "$ARG" == *"'"* ]]; then
-      fn_log error "Arguments may not have any single quote characters."
-      exit 1
-    fi
-  done
 
-  # ---
-  # Check that the destination directory is a backup location
-  # ---
+  fn_set_dest_folder "${2%/}"
   if [[ -n $DEST_HOST ]]; then
     fn_log info "backup location: $DEST_HOST:$DEST_FOLDER/"
   else
     fn_log info "backup location: $DEST_FOLDER/"
   fi
-  fn_log info "backup source path: $SRC_FOLDER/"
-
   BACKUP_MARKER_FILE="$DEST_FOLDER/backup.marker"
-  # this function sets variable $UTC dependent on backup marker content
+  # Check that the destination directory is a backup location
   fn_import_backup_marker
+
+  local EXCLUSION_FILE="$3"
 
   # ---
   # Basic variables
@@ -413,22 +404,16 @@ fn_backup() {
 
   done
 
-  # ---
   # Add symlink to last successful backup
-  # ---
   fn_run rm -f -- "$DEST_FOLDER/latest"
   fn_run ln -s -- "$(basename "$DEST")" "$DEST_FOLDER/latest"
 
-  # ---
   # delete expired backups
-  # ---
   if [ "$OPT_KEEP_EXPIRED" != "true" ]; then
     fn_delete_backups
   fi
 
-  # ---
   # end backup
-  # ---
   fn_run rm -f -- "$INPROGRESS_FILE"
   fn_log info "backup $(basename "$DEST") completed"
 }
