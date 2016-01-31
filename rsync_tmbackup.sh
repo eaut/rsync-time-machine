@@ -4,7 +4,7 @@ readonly APPNAME=$(basename "${0%.sh}")
 
 # ssh argument defaults
 readonly SSH_CMD="ssh"
-readonly SSH_ARG=""
+SSH_ARG=""
 
 #
 # backup config defaults (overridden by backup marker configuration)
@@ -64,6 +64,9 @@ fn_usage() {
   fn_log info "      do not delete expired backups until they can be reused by subsequent backups or"
   fn_log info "      the backup location runs out of space."
   fn_log info
+  fn_log info "  --ssh-opt <option>"
+  fn_log info "      pass options to ssh, e.g. '-p 22'"
+  fn_log info
   fn_log info "  -v, --verbose"
   fn_log info "      increase verbosity"
   fn_log info
@@ -114,6 +117,10 @@ fn_run() {
       "$SSH_CMD" "$SSH_ARG" -- "$DEST_HOST" "$@"
     else
       "$SSH_CMD" -- "$DEST_HOST" "$@"
+    fi
+    if [[ $? -eq 255 ]]; then
+      fn_log error "ssh command failed: $SSH_CMD $SSH_ARG -- $DEST_HOST $@"
+      exit 1
     fi
   else
     eval "$@"
@@ -543,6 +550,14 @@ while [ "$#" -gt 0 ]; do
       ;;
     -k|--keep-expired)
       OPT_KEEP_EXPIRED="true"
+      ;;
+    --ssh-opt)
+      if [ "$#" -lt 1 ]; then
+        fn_log error "Wrong number of arguments for command '$ARG'."
+        exit 1
+      fi
+      SSH_ARG="$1"
+      shift
       ;;
     init)
       if [ "$#" -lt 1 ] || [ "$#" -gt 2 ]; then
