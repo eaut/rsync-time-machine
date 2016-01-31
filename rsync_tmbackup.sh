@@ -386,15 +386,9 @@ fn_backup() {
   # ---
   # Run in a loop to handle the "No space left on device" logic.
   # ---
-  while : ; do
+  while ! fn_rsync "$SRC_FOLDER" "$DEST" "$PREVIOUS_DEST" "$EXCLUSION_FILE" ; do
 
-    # Start backup
-    fn_rsync "$SRC_FOLDER" "$DEST" "$PREVIOUS_DEST" "$EXCLUSION_FILE"
-
-    # ---
-    # Check if we ran out of space
-    # ---
-
+    # Check if error was caused by to little space
     # TODO: find better way to check for out of space condition without parsing log.
     local NO_SPACE_LEFT="$(grep "No space left on device (28)\|Result too large (34)" "$TMP_RSYNC_LOG")"
 
@@ -411,24 +405,13 @@ fn_backup() {
       fi
 
       fn_delete_backups
-
-      # Resume backup
       continue
+    else
+      fn_log error "rsync error - exiting"
+      exit 1
     fi
 
-    break
   done
-
-  # ---
-  # Check whether rsync reported any errors
-  # ---
-  if [ -n "$(grep "^rsync:" "$TMP_RSYNC_LOG")" ]; then
-    fn_log warning "Rsync reported a warning."
-  fi
-  if [ -n "$(grep "^rsync error:" "$TMP_RSYNC_LOG")" ]; then
-    fn_log error "Rsync reported an error - exiting."
-    exit 1
-  fi
 
   # ---
   # Add symlink to last successful backup
