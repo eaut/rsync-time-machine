@@ -1,10 +1,11 @@
 #!/usr/bin/env bash
 
-readonly APPNAME=$(basename "${0%.sh}")
+# -----------------------------------------------------------------------------
+# global variables
+# -----------------------------------------------------------------------------
 
-# ssh argument defaults
+readonly APPNAME=$(basename "${0%.sh}")
 readonly SSH_CMD="ssh"
-SSH_ARG=""
 
 #
 # backup config defaults (overridden by backup marker configuration)
@@ -22,6 +23,7 @@ RETENTION_WIN_24H="$((28 * 24 * 3600))"  # 4 weeks
 OPT_VERBOSE="false"
 OPT_SYSLOG="false"
 OPT_KEEP_EXPIRED="false"
+SSH_ARG=""
 
 #
 # other global variables
@@ -519,7 +521,6 @@ __EOF__
 fn_diff() {
   LOC1="${2%/}"
   LOC2="${3%/}"
-  # TODO: something needs to be done here for ssh support
   rsync --dry-run -auvi "$LOC1/" "$LOC2/" | grep -E -v '^sending|^$|^sent.*sec$|^total.*RUN\)'
 }
 
