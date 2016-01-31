@@ -39,6 +39,9 @@ Options:
       do not delete expired backups until they can be reused by subsequent backups or
       the backup location runs out of space.
 
+  --ssh-opt <option>
+      pass options to ssh, e.g. '-p 22'
+
   -v, --verbose
       increase verbosity
 
