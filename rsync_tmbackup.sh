@@ -434,7 +434,7 @@ fn_rsync() {
 
   if [[ $OPT_VERBOSE == "true" ]]; then
     RS_ARG+=("--verbose")
-  fi 
+  fi
   if [[ -n $SSH_ARG ]]; then
     RS_ARG+=("-e" "'$SSH_RS_ARG $SSH_ARG'")
   fi
@@ -459,7 +459,7 @@ fn_rsync() {
 
   local G_ARG=("--line-buffered" "-v" "-E" "^[*]?deleting|^$|^.[Ld]\.\.t\.\.\.\.\.\.")
 
-  fn_log verbose "rsync ${RS_ARG[@]} | grep ${G_ARG[@]}" 
+  fn_log verbose "rsync ${RS_ARG[@]} | grep ${G_ARG[@]}"
 
   if [[ $OPT_SYSLOG != "true" ]]; then
     rsync "${RS_ARG[@]}" | grep "${G_ARG[@]}"
