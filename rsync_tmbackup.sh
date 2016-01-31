@@ -388,55 +388,8 @@ fn_backup() {
   # ---
   while : ; do
 
-    # ---
     # Start backup
-    # ---
-    local CMD="rsync"
-    CMD="$CMD --archive"
-    CMD="$CMD --hard-links"
-    CMD="$CMD --numeric-ids"
-    CMD="$CMD --delete --delete-excluded"
-    CMD="$CMD --one-file-system"
-    CMD="$CMD --itemize-changes"
-    CMD="$CMD --human-readable"
-    CMD="$CMD --log-file '$TMP_RSYNC_LOG'"
-
-    if [[ $OPT_VERBOSE == "true" ]]; then
-      CMD="$CMD --verbose"
-    fi 
-    if [[ -n $SSH_ARG ]]; then
-      CMD="$CMD -e '$SSH_CMD $SSH_ARG'"
-    fi
-    if [ -n "$EXCLUSION_FILE" ]; then
-      # We've already checked that $EXCLUSION_FILE doesn't contain a single quote
-      CMD="$CMD --exclude-from '$EXCLUSION_FILE'"
-    fi
-    if [[ -n $PREVIOUS_DEST ]]; then
-      # If the path is relative, it needs to be relative to the destination. To keep
-      # it simple, just use an absolute path. See http://serverfault.com/a/210058/118679
-      PREVIOUS_DEST="$(fn_run "cd '$PREVIOUS_DEST'; pwd")"
-      fn_log info "doing incremental backup from $(basename "$PREVIOUS_DEST")"
-      CMD="$CMD --link-dest='$PREVIOUS_DEST'"
-    fi
-    CMD="$CMD -- '$SRC_FOLDER/'"
-    if [[ -n $DEST_HOST ]]; then
-      CMD="$CMD '$DEST_HOST:$DEST/'"
-    else
-      CMD="$CMD '$DEST/'"
-    fi
-
-    fn_log info "rsync started for backup $(basename "$DEST")"
-
-    CMD="$CMD | grep --line-buffered -v -E '^[*]?deleting|^$|^.[Ld]\.\.t\.\.\.\.\.\.'"
-
-    fn_log verbose "$CMD"
-
-    if [ "$OPT_SYSLOG" == "true" ]; then
-      CMD="$CMD | tee /dev/stderr 2>&40"
-    fi
-    eval "$CMD"
-
-    fn_log info "rsync end"
+    fn_rsync "$SRC_FOLDER" "$DEST" "$PREVIOUS_DEST" "$EXCLUSION_FILE"
 
     # ---
     # Check if we ran out of space
@@ -495,6 +448,62 @@ fn_backup() {
   # ---
   fn_run rm -f -- "$INPROGRESS_FILE"
   fn_log info "backup $(basename "$DEST") completed"
+}
+
+fn_rsync() {
+
+  local SRC="$1"
+  local DST="$2"
+  local PREV_DST="$3"
+  local EXCLUDE_FILE="$4"
+
+  local RS_ARG=()
+  RS_ARG+=("--archive" "--hard-links" "--numeric-ids")
+  RS_ARG+=("--delete" "--delete-excluded")
+  RS_ARG+=("--one-file-system")
+  RS_ARG+=("--itemize-changes" "--human-readable")
+  RS_ARG+=("--log-file" "'$TMP_RSYNC_LOG'")
+
+  if [[ $OPT_VERBOSE == "true" ]]; then
+    RS_ARG+=("--verbose")
+  fi 
+  if [[ -n $SSH_ARG ]]; then
+    RS_ARG+=("-e" "'$SSH_RS_ARG $SSH_ARG'")
+  fi
+  if [[ -n $EXCLUDE_FILE ]]; then
+    RS_ARG+=("--exclude-from" "$EXCLUDE_FILE")
+  fi
+  if [[ -n $PREV_DST ]]; then
+    # If the path is relative, it needs to be relative to the destination. To keep
+    # it simple, just use an absolute path. See http://serverfault.com/a/210058/118679
+    PREV_DST="$(fn_run "cd '$PREV_DST'; pwd")"
+    fn_log info "doing incremental backup from $(basename "$PREV_DST")"
+    RS_ARG+=("--link-dest" "$PREV_DST")
+  fi
+  RS_ARG+=("--" "$SRC/")
+  if [[ -n $DEST_HOST ]]; then
+    RS_ARG+=("$DEST_HOST:$DST/")
+  else
+    RS_ARG+=("$DST/")
+  fi
+
+  fn_log info "rsync started for backup $(basename "$DST")"
+
+  local G_ARG=("--line-buffered" "-v" "-E" "^[*]?deleting|^$|^.[Ld]\.\.t\.\.\.\.\.\.")
+
+  fn_log verbose "rsync ${RS_ARG[@]} | grep ${G_ARG[@]}" 
+
+  if [[ $OPT_SYSLOG != "true" ]]; then
+    rsync "${RS_ARG[@]}" | grep "${G_ARG[@]}"
+  else
+    rsync "${RS_ARG[@]}" | grep "${G_ARG[@]}" | tee /dev/stderr 2>&40
+  fi
+
+  local RSYNC_EXIT="${PIPESTATUS[0]}"
+
+  fn_log info "rsync end"
+
+  return "$RSYNC_EXIT"
 }
 
 fn_init() {
