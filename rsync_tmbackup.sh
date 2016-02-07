@@ -100,9 +100,11 @@ fn_set_dest_folder() {
   if [[ $1 =~ ([A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+):(.+) ]]; then
     DEST_HOST="${BASH_REMATCH[1]}"
     DEST_FOLDER="${BASH_REMATCH[2]}"
+    fn_log info "backup location: $DEST_HOST:$DEST_FOLDER/"
   else
     DEST_HOST=""
     DEST_FOLDER="$1"
+    fn_log info "backup location: $DEST_FOLDER/"
   fi
   if fn_run "[ ! -d '$DEST_FOLDER' ]"; then
     fn_log error "backup location $DEST_FOLDER does not exist."
@@ -300,11 +302,7 @@ fn_backup() {
   fi
 
   fn_set_dest_folder "${2%/}"
-  if [[ -n $DEST_HOST ]]; then
-    fn_log info "backup location: $DEST_HOST:$DEST_FOLDER/"
-  else
-    fn_log info "backup location: $DEST_FOLDER/"
-  fi
+
   BACKUP_MARKER_FILE="$DEST_FOLDER/backup.marker"
   # Check that the destination directory is a backup location
   fn_import_backup_marker
