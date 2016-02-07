@@ -22,8 +22,8 @@ OPT_KEEP_EXPIRED="false"
 SSH_ARG=""
 
 # other
-DEST_HOST=""
-DEST_FOLDER=""
+BACKUP_HOST=""
+BACKUP_ROOT=""
 BACKUP_MARKER_FILE=""
 EXPIRED_DIR=""
 TMP_RSYNC_LOG=""
@@ -92,16 +92,16 @@ fn_cleanup() {
 fn_set_dest_folder() {
   # check if destination is remote
   if [[ $1 =~ ([A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+):(.+) ]]; then
-    DEST_HOST="${BASH_REMATCH[1]}"
-    DEST_FOLDER="${BASH_REMATCH[2]}"
-    fn_log info "backup location: $DEST_HOST:$DEST_FOLDER"
+    BACKUP_HOST="${BASH_REMATCH[1]}"
+    BACKUP_ROOT="${BASH_REMATCH[2]}"
+    fn_log info "backup location: $BACKUP_HOST:$BACKUP_ROOT"
   else
-    DEST_HOST=""
-    DEST_FOLDER="$1"
-    fn_log info "backup location: $DEST_FOLDER"
+    BACKUP_HOST=""
+    BACKUP_ROOT="$1"
+    fn_log info "backup location: $BACKUP_ROOT"
   fi
-  if fn_run "[ ! -d '$DEST_FOLDER' ]"; then
-    fn_log error "backup location $DEST_FOLDER does not exist."
+  if fn_run "[ ! -d '$BACKUP_ROOT' ]"; then
+    fn_log error "backup location $BACKUP_ROOT does not exist."
     exit 1
   fi
 }
@@ -110,14 +110,14 @@ fn_run() {
   # IMPORTANT:
   #   commands or command sequences that make use of pipes, redirection, 
   #   semicolons or conditional expressions have to passed as quoted strings
-  if [[ -n $DEST_HOST ]]; then
+  if [[ -n $BACKUP_HOST ]]; then
     if [[ -n $SSH_ARG ]]; then
-      "$SSH_CMD" "$SSH_ARG" -- "$DEST_HOST" "$@"
+      "$SSH_CMD" "$SSH_ARG" -- "$BACKUP_HOST" "$@"
     else
-      "$SSH_CMD" -- "$DEST_HOST" "$@"
+      "$SSH_CMD" -- "$BACKUP_HOST" "$@"
     fi
     if [[ $? -eq 255 ]]; then
-      fn_log error "ssh command failed: $SSH_CMD $SSH_ARG -- $DEST_HOST $@"
+      fn_log error "ssh command failed: $SSH_CMD $SSH_ARG -- $BACKUP_HOST $@"
       exit 1
     fi
   else
@@ -149,7 +149,7 @@ fn_find_backups() {
       fn_run find "'$EXPIRED_DIR' -maxdepth 1 -type d -name '????-??-??-??????' | sort -r"
     fi
   else
-    fn_run find "'$DEST_FOLDER' -maxdepth 1 -type d -name '????-??-??-??????' | sort -r"
+    fn_run find "'$BACKUP_ROOT' -maxdepth 1 -type d -name '????-??-??-??????' | sort -r"
   fi
 }
 
@@ -298,7 +298,7 @@ fn_backup() {
   fn_set_dest_folder "$2"
 
   # load backup specific config
-  BACKUP_MARKER_FILE="$DEST_FOLDER/backup.marker"
+  BACKUP_MARKER_FILE="$BACKUP_ROOT/backup.marker"
   fn_import_backup_marker
 
   local EXCLUDE_FILE="$3"
@@ -315,9 +315,9 @@ fn_backup() {
     fn_log info "backup time base: local time"
   fi
 
-  local DEST="$DEST_FOLDER/$NOW"
-  local INPROGRESS_FILE="$DEST_FOLDER/backup.inprogress"
-  EXPIRED_DIR="$DEST_FOLDER/expired"
+  local DEST="$BACKUP_ROOT/$NOW"
+  local INPROGRESS_FILE="$BACKUP_ROOT/backup.inprogress"
+  EXPIRED_DIR="$BACKUP_ROOT/expired"
   TMP_RSYNC_LOG=$(mktemp "/tmp/${APPNAME}_XXXXXXXXXX")
 
   # ---
@@ -394,8 +394,8 @@ fn_backup() {
   done
 
   # Add symlink to last successful backup
-  fn_run rm -f -- "$DEST_FOLDER/latest"
-  fn_run ln -s -- "$(basename "$DEST")" "$DEST_FOLDER/latest"
+  fn_run rm -f -- "$BACKUP_ROOT/latest"
+  fn_run ln -s -- "$(basename "$DEST")" "$BACKUP_ROOT/latest"
 
   # delete expired backups
   if [ "$OPT_KEEP_EXPIRED" != "true" ]; then
@@ -439,8 +439,8 @@ fn_rsync() {
   fi
 
   RS_ARG+=("--" "${SRC%/}/")
-  if [[ -n $DEST_HOST ]]; then
-    RS_ARG+=("$DEST_HOST:$DST")
+  if [[ -n $BACKUP_HOST ]]; then
+    RS_ARG+=("$BACKUP_HOST:$DST")
   else
     RS_ARG+=("$DST")
   fi
@@ -465,7 +465,7 @@ fn_rsync() {
 
 fn_init() {
   fn_set_dest_folder "$1"
-  BACKUP_MARKER_FILE="$DEST_FOLDER/backup.marker"
+  BACKUP_MARKER_FILE="$BACKUP_ROOT/backup.marker"
   if [[ $2 != "--local-time" ]]; then
     UTC="true"
   fi
