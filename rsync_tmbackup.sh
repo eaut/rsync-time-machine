@@ -301,7 +301,7 @@ fn_backup() {
   BACKUP_MARKER_FILE="$DEST_FOLDER/backup.marker"
   fn_import_backup_marker
 
-  local EXCLUSION_FILE="$3"
+  local EXCLUDE_FILE="$3"
 
   # ---
   # Basic variables
@@ -369,7 +369,7 @@ fn_backup() {
   # ---
   # Run in a loop to handle the "No space left on device" logic.
   # ---
-  while ! fn_rsync "$SRC_FOLDER" "$DEST" "$PREVIOUS_DEST" "$EXCLUSION_FILE" ; do
+  while ! fn_rsync "$SRC_FOLDER" "$DEST" "$PREVIOUS_DEST" "$EXCLUDE_FILE" ; do
 
     # Check if error was caused by to little space
     # TODO: find better way to check for out of space condition without parsing log.
@@ -484,7 +484,7 @@ __EOF__
   fn_run "echo '$DEFAULT_CONFIG' >> '$BACKUP_MARKER_FILE'"
   # since we excute this file, access should be limited
   fn_run chmod -- 600 "$BACKUP_MARKER_FILE"
-  fn_log info "Backup marker $BACKUP_MARKER_FILE created."
+  fn_log info "created backup marker $BACKUP_MARKER_FILE"
 }
 
 fn_diff() {
