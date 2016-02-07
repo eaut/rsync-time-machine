@@ -371,7 +371,7 @@ fn_backup() {
   # ---
   while ! fn_rsync "$SRC_FOLDER" "$DEST" "$PREVIOUS_DEST" "$EXCLUDE_FILE" ; do
 
-    fn_log info "rsync error exit code: $?"
+    fn_log warning "rsync error exit code: $?"
 
     # Check if error was caused by to little space
     # TODO: find better way to check for out of space condition without parsing log.
@@ -380,10 +380,10 @@ fn_backup() {
     if [ -n "$NO_SPACE_LEFT" ]; then
       if [ -z "$(fn_find_backups expired)" ]; then
         # no backups scheduled for deletion, delete oldest backup
-        fn_log warning "No space left on device, removing oldest backup"
+        fn_log warning "no space left on backup device, expiring oldest backup"
 
         if [[ "$(fn_find_backups | wc -l)" -lt "2" ]]; then
-          fn_log error "No space left on device, and no old backup to delete."
+          fn_log error "No space left on backup device, and no old backup to expire"
           exit 1
         fi
         fn_mark_expired "$(fn_find_backups | tail -n 1)"
