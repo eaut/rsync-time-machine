@@ -315,7 +315,7 @@ fn_backup() {
     fn_log info "backup time base: local time"
   fi
 
-  local DEST="$BACKUP_ROOT/$NOW"
+  local BACKUP="$BACKUP_ROOT/$NOW"
   local INPROGRESS_FILE="$BACKUP_ROOT/backup.inprogress"
   EXPIRED_DIR="$BACKUP_ROOT/expired"
   TMP_RSYNC_LOG=$(mktemp "/tmp/${APPNAME}_XXXXXXXXXX")
@@ -333,7 +333,7 @@ fn_backup() {
     fn_log info "previous backup $PREV_BACKUP was interrupted - resuming from there."
     fn_run "echo '$$' > '$INPROGRESS_FILE'"
     # last backup is moved to current backup folder so that it can be resumed.
-    fn_run mv -- "$PREV_BACKUP" "$DEST"
+    fn_run mv -- "$PREV_BACKUP" "$BACKUP"
     # 2nd to last backup becomes last backup.
     if [ "$(fn_find_backups | wc -l)" -gt 1 ]; then
       PREV_BACKUP="$(fn_find_backups | sed -n '2p')"
@@ -360,16 +360,16 @@ fn_backup() {
     # operation. this significantly speeds up backup times!
     # to work rsync needs the following options: --delete --delete-excluded
     fn_log info "reusing expired backup $(basename "$LAST_EXPIRED")"
-    fn_run mv -- "$LAST_EXPIRED" "$DEST"
+    fn_run mv -- "$LAST_EXPIRED" "$BACKUP"
   else
     # a new backup directory is needed
-    fn_mkdir "$DEST"
+    fn_mkdir "$BACKUP"
   fi
 
   # ---
   # Run in a loop to handle the "No space left on device" logic.
   # ---
-  while ! fn_rsync "$SRC_FOLDER" "$DEST" "$PREV_BACKUP" "$EXCLUDE_FILE" ; do
+  while ! fn_rsync "$SRC_FOLDER" "$BACKUP" "$PREV_BACKUP" "$EXCLUDE_FILE" ; do
 
     fn_log warning "rsync error exit code: $?"
 
@@ -395,7 +395,7 @@ fn_backup() {
 
   # Add symlink to last successful backup
   fn_run rm -f -- "$BACKUP_ROOT/latest"
-  fn_run ln -s -- "$(basename "$DEST")" "$BACKUP_ROOT/latest"
+  fn_run ln -s -- "$(basename "$BACKUP")" "$BACKUP_ROOT/latest"
 
   # delete expired backups
   if [ "$OPT_KEEP_EXPIRED" != "true" ]; then
@@ -404,7 +404,7 @@ fn_backup() {
 
   # end backup
   fn_run rm -f -- "$INPROGRESS_FILE"
-  fn_log info "backup $(basename "$DEST") completed"
+  fn_log info "backup $(basename "$BACKUP") completed"
 }
 
 fn_rsync() {
