@@ -373,29 +373,24 @@ fn_backup() {
 
     fn_log warning "rsync error exit code: $?"
 
-    # Check if error was caused by to little space
-    # TODO: find better way to check for out of space condition without parsing log.
+    # Check if error was caused by to little space, TODO: find better way without log parsing
     local NO_SPACE_LEFT="$(grep "No space left on device (28)\|Result too large (34)" "$TMP_RSYNC_LOG")"
 
     if [ -n "$NO_SPACE_LEFT" ]; then
       if [ -z "$(fn_find_backups expired)" ]; then
-        # no backups scheduled for deletion, delete oldest backup
-        fn_log warning "no space left on backup device, expiring oldest backup"
-
-        if [[ "$(fn_find_backups | wc -l)" -lt "2" ]]; then
-          fn_log error "No space left on backup device, and no old backup to expire"
+        if [[ "$(fn_find_backups | wc -l)" -le 1 ]]; then
+          fn_log error "no space left on backup device, and no old backup to expire"
           exit 1
+        else
+          fn_log warning "no space left on backup device, expiring oldest backup"
+          fn_mark_expired "$(fn_find_backups | tail -n 1)"
         fi
-        fn_mark_expired "$(fn_find_backups | tail -n 1)"
       fi
-
       fn_delete_backups
-      continue
     else
       fn_log error "rsync error - exiting"
       exit 1
     fi
-
   done
 
   # Add symlink to last successful backup
