@@ -86,7 +86,7 @@ fn_log() {
 }
 
 fn_cleanup() {
-  if [ -n "$TMP_RSYNC_LOG" ]; then
+  if [ -f "$TMP_RSYNC_LOG" ]; then
     rm -f -- "$TMP_RSYNC_LOG"
   fi
   # close redirection to logger
