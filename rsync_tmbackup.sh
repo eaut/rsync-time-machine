@@ -323,22 +323,22 @@ fn_backup() {
   # ---
   # Check for previous backup operations
   # ---
-  local PREVIOUS_DEST="$(fn_find_backups | head -n 1)"
+  local PREV_BACKUP="$(fn_find_backups | head -n 1)"
 
   if fn_run "[ -f '$INPROGRESS_FILE' ]"; then
     if pgrep -F "$INPROGRESS_FILE" "$APPNAME" > /dev/null 2>&1 ; then
       fn_log error "previous backup task is still active - aborting."
       exit 1
     fi
-    fn_log info "previous backup $PREVIOUS_DEST was interrupted - resuming from there."
+    fn_log info "previous backup $PREV_BACKUP was interrupted - resuming from there."
     fn_run "echo '$$' > '$INPROGRESS_FILE'"
     # last backup is moved to current backup folder so that it can be resumed.
-    fn_run mv -- "$PREVIOUS_DEST" "$DEST"
+    fn_run mv -- "$PREV_BACKUP" "$DEST"
     # 2nd to last backup becomes last backup.
     if [ "$(fn_find_backups | wc -l)" -gt 1 ]; then
-      PREVIOUS_DEST="$(fn_find_backups | sed -n '2p')"
+      PREV_BACKUP="$(fn_find_backups | sed -n '2p')"
     else
-      PREVIOUS_DEST=""
+      PREV_BACKUP=""
     fi
   else
     fn_run "echo '$$' > '$INPROGRESS_FILE'"
@@ -369,7 +369,7 @@ fn_backup() {
   # ---
   # Run in a loop to handle the "No space left on device" logic.
   # ---
-  while ! fn_rsync "$SRC_FOLDER" "$DEST" "$PREVIOUS_DEST" "$EXCLUDE_FILE" ; do
+  while ! fn_rsync "$SRC_FOLDER" "$DEST" "$PREV_BACKUP" "$EXCLUDE_FILE" ; do
 
     fn_log warning "rsync error exit code: $?"
 
@@ -459,9 +459,7 @@ fn_rsync() {
   fi
 
   local RSYNC_EXIT="${PIPESTATUS[0]}"
-
   fn_log info "rsync end"
-
   return "$RSYNC_EXIT"
 }
 
