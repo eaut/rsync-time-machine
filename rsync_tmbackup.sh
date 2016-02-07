@@ -94,11 +94,11 @@ fn_set_dest_folder() {
   if [[ $1 =~ ([A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+):(.+) ]]; then
     DEST_HOST="${BASH_REMATCH[1]}"
     DEST_FOLDER="${BASH_REMATCH[2]}"
-    fn_log info "backup location: $DEST_HOST:$DEST_FOLDER/"
+    fn_log info "backup location: $DEST_HOST:$DEST_FOLDER"
   else
     DEST_HOST=""
     DEST_FOLDER="$1"
-    fn_log info "backup location: $DEST_FOLDER/"
+    fn_log info "backup location: $DEST_FOLDER"
   fi
   if fn_run "[ ! -d '$DEST_FOLDER' ]"; then
     fn_log error "backup location $DEST_FOLDER does not exist."
@@ -287,7 +287,7 @@ fn_backup() {
 
   fn_log info "backup start"
 
-  local SRC_FOLDER="${1%/}"
+  local SRC_FOLDER="$1"
   if [[ -d $SRC_FOLDER ]]; then
     fn_log info "backup source path: $SRC_FOLDER"
   else
@@ -295,9 +295,9 @@ fn_backup() {
     exit 1
   fi
 
-  fn_set_dest_folder "${2%/}"
+  fn_set_dest_folder "$2"
 
-  # Check that the destination directory is a backup location
+  # load backup specific config
   BACKUP_MARKER_FILE="$DEST_FOLDER/backup.marker"
   fn_import_backup_marker
 
@@ -371,6 +371,8 @@ fn_backup() {
   # ---
   while ! fn_rsync "$SRC_FOLDER" "$DEST" "$PREVIOUS_DEST" "$EXCLUDE_FILE" ; do
 
+    fn_log info "rsync error exit code: $?"
+
     # Check if error was caused by to little space
     # TODO: find better way to check for out of space condition without parsing log.
     local NO_SPACE_LEFT="$(grep "No space left on device (28)\|Result too large (34)" "$TMP_RSYNC_LOG")"
@@ -422,36 +424,38 @@ fn_rsync() {
   RS_ARG+=("--delete" "--delete-excluded")
   RS_ARG+=("--one-file-system")
   RS_ARG+=("--itemize-changes" "--human-readable")
-  RS_ARG+=("--log-file" "'$TMP_RSYNC_LOG'")
+  RS_ARG+=("--log-file=$TMP_RSYNC_LOG")
 
   if [[ $OPT_VERBOSE == "true" ]]; then
     RS_ARG+=("--verbose")
   fi
   if [[ -n $SSH_ARG ]]; then
-    RS_ARG+=("-e" "'$SSH_RS_ARG $SSH_ARG'")
+    RS_ARG+=("-e" "$SSH_RS_ARG $SSH_ARG")
   fi
   if [[ -n $EXCLUDE_FILE ]]; then
-    RS_ARG+=("--exclude-from" "$EXCLUDE_FILE")
+    RS_ARG+=("--exclude-from=$EXCLUDE_FILE")
   fi
   if [[ -n $PREV_DST ]]; then
     # If the path is relative, it needs to be relative to the destination. To keep
     # it simple, just use an absolute path. See http://serverfault.com/a/210058/118679
     PREV_DST="$(fn_run "cd '$PREV_DST'; pwd")"
     fn_log info "doing incremental backup from $(basename "$PREV_DST")"
-    RS_ARG+=("--link-dest" "$PREV_DST")
+    RS_ARG+=("--link-dest=$PREV_DST")
   fi
-  RS_ARG+=("--" "$SRC/")
+
+  RS_ARG+=("--" "${SRC%/}/")
   if [[ -n $DEST_HOST ]]; then
-    RS_ARG+=("$DEST_HOST:$DST/")
+    RS_ARG+=("$DEST_HOST:${DST%/}/")
   else
-    RS_ARG+=("$DST/")
+    RS_ARG+=("${DST%/}/")
   fi
 
   fn_log info "rsync started for backup $(basename "$DST")"
 
   local G_ARG=("--line-buffered" "-v" "-E" "^[*]?deleting|^$|^.[Ld]\.\.t\.\.\.\.\.\.")
 
-  fn_log verbose "rsync ${RS_ARG[@]} | grep ${G_ARG[@]}"
+  # avoid separating array elements with newlines
+  ( IFS=" " ; fn_log verbose "rsync ${RS_ARG[@]} | grep ${G_ARG[@]}" )
 
   if [[ $OPT_SYSLOG != "true" ]]; then
     rsync "${RS_ARG[@]}" | grep "${G_ARG[@]}"
@@ -467,7 +471,7 @@ fn_rsync() {
 }
 
 fn_init() {
-  fn_set_dest_folder "${1%/}"
+  fn_set_dest_folder "$1"
   BACKUP_MARKER_FILE="$DEST_FOLDER/backup.marker"
   if [[ $2 != "--local-time" ]]; then
     UTC="true"
@@ -488,9 +492,7 @@ __EOF__
 }
 
 fn_diff() {
-  LOC1="${2%/}"
-  LOC2="${3%/}"
-  rsync --dry-run -auvi "$LOC1/" "$LOC2/" | grep -E -v '^sending|^$|^sent.*sec$|^total.*RUN\)'
+  rsync --dry-run -auvi "${1%/}/" "${2%/}/" | grep -E -v '^sending|^$|^sent.*sec$|^total.*RUN\)'
 }
 
 # -----------------------------------------------------------------------------
