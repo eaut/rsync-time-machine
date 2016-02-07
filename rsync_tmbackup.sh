@@ -7,27 +7,21 @@
 readonly APPNAME=$(basename "${0%.sh}")
 readonly SSH_CMD="ssh"
 
-#
 # backup config defaults (overridden by backup marker configuration)
-#
 UTC="false"  # compatibility setting for old backups without marker config
-RETENTION_WIN_ALL="$((4 * 3600))"        # 4 hrs
-RETENTION_WIN_01H="$((1 * 24 * 3600))"   # 24 hrs
-RETENTION_WIN_04H="$((3 * 24 * 3600))"   # 3 days
-RETENTION_WIN_08H="$((14 * 24 * 3600))"  # 2 weeks
-RETENTION_WIN_24H="$((28 * 24 * 3600))"  # 4 weeks
+RETENTION_WIN_ALL=$((4 * 3600))        # 4 hrs
+RETENTION_WIN_01H=$((1 * 24 * 3600))   # 24 hrs
+RETENTION_WIN_04H=$((3 * 24 * 3600))   # 3 days
+RETENTION_WIN_08H=$((14 * 24 * 3600))  # 2 weeks
+RETENTION_WIN_24H=$((28 * 24 * 3600))  # 4 weeks
 
-#
 # command line argument defaults
-#
 OPT_VERBOSE="false"
 OPT_SYSLOG="false"
 OPT_KEEP_EXPIRED="false"
 SSH_ARG=""
 
-#
-# other global variables
-#
+# other
 DEST_HOST=""
 DEST_FOLDER=""
 BACKUP_MARKER_FILE=""
@@ -303,8 +297,8 @@ fn_backup() {
 
   fn_set_dest_folder "${2%/}"
 
-  BACKUP_MARKER_FILE="$DEST_FOLDER/backup.marker"
   # Check that the destination directory is a backup location
+  BACKUP_MARKER_FILE="$DEST_FOLDER/backup.marker"
   fn_import_backup_marker
 
   local EXCLUSION_FILE="$3"
