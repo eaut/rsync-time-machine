@@ -440,9 +440,9 @@ fn_rsync() {
 
   RS_ARG+=("--" "${SRC%/}/")
   if [[ -n $DEST_HOST ]]; then
-    RS_ARG+=("$DEST_HOST:${DST%/}/")
+    RS_ARG+=("$DEST_HOST:$DST")
   else
-    RS_ARG+=("${DST%/}/")
+    RS_ARG+=("$DST")
   fi
 
   fn_log info "rsync started for backup $(basename "$DST")"
