@@ -104,6 +104,8 @@ fn_set_dest_folder() {
     fn_log error "backup location $BACKUP_ROOT does not exist."
     exit 1
   fi
+  BACKUP_MARKER_FILE="$BACKUP_ROOT/backup.marker"
+  EXPIRED_DIR="$BACKUP_ROOT/expired"
 }
 
 fn_run() {
@@ -298,7 +300,6 @@ fn_backup() {
   fn_set_dest_folder "$2"
 
   # load backup specific config
-  BACKUP_MARKER_FILE="$BACKUP_ROOT/backup.marker"
   fn_import_backup_marker
 
   local EXCLUDE_FILE="$3"
@@ -314,15 +315,12 @@ fn_backup() {
     NOW=$(date +"%Y-%m-%d-%H%M%S")
     fn_log info "backup time base: local time"
   fi
-
   local BACKUP="$BACKUP_ROOT/$NOW"
-  local INPROGRESS_FILE="$BACKUP_ROOT/backup.inprogress"
-  EXPIRED_DIR="$BACKUP_ROOT/expired"
-  TMP_RSYNC_LOG=$(mktemp "/tmp/${APPNAME}_XXXXXXXXXX")
 
   # ---
   # Check for previous backup operations
   # ---
+  local INPROGRESS_FILE="$BACKUP_ROOT/backup.inprogress"
   local PREV_BACKUP="$(fn_find_backups | head -n 1)"
 
   if fn_run "[ -f '$INPROGRESS_FILE' ]"; then
@@ -369,6 +367,8 @@ fn_backup() {
   # ---
   # Run in a loop to handle the "No space left on device" logic.
   # ---
+  TMP_RSYNC_LOG=$(mktemp "/tmp/${APPNAME}_XXXXXXXXXX")
+
   while ! fn_rsync "$SRC_FOLDER" "$BACKUP" "$PREV_BACKUP" "$EXCLUDE_FILE" ; do
 
     fn_log warning "rsync error exit code: $?"
@@ -425,7 +425,7 @@ fn_rsync() {
     RS_ARG+=("--verbose")
   fi
   if [[ -n $SSH_ARG ]]; then
-    RS_ARG+=("-e" "$SSH_RS_ARG $SSH_ARG")
+    RS_ARG+=("-e" "$SSH_CMD $SSH_ARG")
   fi
   if [[ -n $EXCLUDE_FILE ]]; then
     RS_ARG+=("--exclude-from=$EXCLUDE_FILE")
@@ -465,7 +465,6 @@ fn_rsync() {
 
 fn_init() {
   fn_set_dest_folder "$1"
-  BACKUP_MARKER_FILE="$BACKUP_ROOT/backup.marker"
   if [[ $2 != "--local-time" ]]; then
     UTC="true"
   fi
