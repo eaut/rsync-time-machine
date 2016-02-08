@@ -118,9 +118,12 @@ fn_run() {
     else
       "$SSH_CMD" -- "$BACKUP_HOST" "$@"
     fi
-    if [[ $? -eq 255 ]]; then
+    local RETVAL=$?
+    if [[ $RETVAL -eq 255 ]]; then
       fn_log error "ssh command failed: $SSH_CMD $SSH_ARG -- $BACKUP_HOST $@"
       exit 1
+    else
+      return $RETVAL
     fi
   else
     eval "$@"
