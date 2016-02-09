@@ -270,7 +270,7 @@ fn_expire_backups() {
   done
 }
 
-fn_delete_backups() {
+fn_delete_expired_backups() {
   fn_check_backup_marker
   local BACKUP
   for BACKUP in $(fn_find_expired); do
@@ -381,7 +381,7 @@ fn_backup() {
           fn_mark_expired "$(fn_find_backups | tail -n 1)"
         fi
       fi
-      fn_delete_backups
+      fn_delete_expired_backups
     else
       fn_log error "rsync error - exiting"
       exit 1
@@ -394,7 +394,7 @@ fn_backup() {
 
   # delete expired backups
   if [ "$OPT_KEEP_EXPIRED" != "true" ]; then
-    fn_delete_backups
+    fn_delete_expired_backups
   fi
 
   # end backup
