@@ -332,11 +332,7 @@ fn_backup() {
     # last backup is moved to current backup folder so that it can be resumed.
     fn_run mv -- "$PREV_BACKUP" "$BACKUP"
     # 2nd to last backup becomes last backup.
-    if [ "$(fn_find_backups | wc -l)" -gt 1 ]; then
-      PREV_BACKUP="$(fn_find_backups | sed -n '2p')"
-    else
-      PREV_BACKUP=""
-    fi
+    PREV_BACKUP="$(fn_find_backups | sed -n 2p)"
   else
     fn_run "echo '$$' > '$INPROGRESS_FILE'"
   fi
