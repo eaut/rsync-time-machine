@@ -33,42 +33,45 @@ TMP_RSYNC_LOG=""
 # -----------------------------------------------------------------------------
 
 fn_usage() {
-  fn_log info "Usage: $APPNAME [OPTIONS] command [ARGS]"
-  fn_log info
-  fn_log info "Commands:"
-  fn_log info
-  fn_log info "  init <backup_location> [--local-time]"
-  fn_log info "      initialize <backup_location> by creating a backup marker file."
-  fn_log info
-  fn_log info "         --local-time"
-  fn_log info "             name all backups using local time, per default backups"
-  fn_log info "             are named using UTC."
-  fn_log info
-  fn_log info "  backup <src_location> <backup_location> [<exclude_file>]"
-  fn_log info "      create a Time Machine like backup from <src_location> at <backup_location>."
-  fn_log info "      optional: exclude files in <exclude_file> from backup"
-  fn_log info
-  fn_log info "  diff <backup1> <backup2>"
-  fn_log info "      show differences between two backups."
-  fn_log info
-  fn_log info "Options:"
-  fn_log info
-  fn_log info "  -s, --syslog"
-  fn_log info "      log output to syslogd"
-  fn_log info
-  fn_log info "  -k, --keep-expired"
-  fn_log info "      do not delete expired backups until they can be reused by subsequent backups or"
-  fn_log info "      the backup location runs out of space."
-  fn_log info
-  fn_log info "  --ssh-opt <option>"
-  fn_log info "      pass options to ssh, e.g. '-p 22'"
-  fn_log info
-  fn_log info "  -v, --verbose"
-  fn_log info "      increase verbosity"
-  fn_log info
-  fn_log info "  -h, --help"
-  fn_log info "      this help text"
-  fn_log info
+  local MSG=$(sed -E 's/^[[:space:]]{2}//' <<__EOF__
+  Usage: $APPNAME [OPTIONS] command [ARGS]
+
+  Commands:
+
+    init <backup_location> [--local-time]
+        initialize <backup_location> by creating a backup marker file.
+
+           --local-time
+               name all backups using local time, per default backups
+               are named using UTC.
+
+    backup <src_location> <backup_location> [<exclude_file>]
+        create a Time Machine like backup from <src_location> at <backup_location>.
+        optional: exclude files in <exclude_file> from backup
+
+    diff <backup1> <backup2>
+        show differences between two backups.
+
+  Options:
+
+    -s, --syslog
+        log output to syslogd
+
+    -k, --keep-expired
+        do not delete expired backups until they can be reused by subsequent backups or
+        the backup location runs out of space.
+
+    --ssh-opt <option>
+        pass options to ssh, e.g. '-p 22'
+
+    -v, --verbose
+        increase verbosity
+
+    -h, --help
+        this help text
+__EOF__
+  )
+  fn_log info "$MSG"
 }
 
 fn_log() {
@@ -190,9 +193,7 @@ fn_mark_expired() {
 fn_expire_backups() {
   local NOW_TS=$(fn_parse_date "$1")
 
-  #
   # backup aggregation windows and retention times
-  #
   local LIMIT_ALL_TS=$((NOW_TS - RETENTION_WIN_ALL))  # until this point in time all backups are retained
   local LIMIT_1H_TS=$((NOW_TS  - RETENTION_WIN_01H))  # max 1 backup per hour
   local LIMIT_4H_TS=$((NOW_TS  - RETENTION_WIN_04H))  # max 1 backup per 4 hours
@@ -363,7 +364,7 @@ fn_backup() {
   fi
 
   # ---
-  # Run in a loop to handle the "No space left on device" logic.
+  # Run rsync in a loop to handle the "no space left on device" logic.
   # ---
   TMP_RSYNC_LOG=$(mktemp "/tmp/${APPNAME}_XXXXXXXXXX")
 
@@ -435,7 +436,6 @@ fn_rsync() {
     fn_log info "doing incremental backup from $(basename "$PREV_DST")"
     RS_ARG+=("--link-dest=$PREV_DST")
   fi
-
   RS_ARG+=("--" "${SRC%/}/")
   if [[ -n $BACKUP_HOST ]]; then
     RS_ARG+=("$BACKUP_HOST:$DST")
