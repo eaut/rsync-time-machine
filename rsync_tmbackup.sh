@@ -307,18 +307,15 @@ fn_backup() {
 
   local EXCLUDE_FILE="$3"
 
-  # ---
-  # Basic variables
-  # ---
-  local NOW
+  local BACKUP="$BACKUP_ROOT/"
   if [ "$UTC" == "true" ]; then
-    NOW=$(date -u +"%Y-%m-%d-%H%M%S")
+    BACKUP+=$(date -u +"%Y-%m-%d-%H%M%S")
     fn_log info "backup time base: UTC"
   else
-    NOW=$(date +"%Y-%m-%d-%H%M%S")
+    BACKUP+=$(date +"%Y-%m-%d-%H%M%S")
     fn_log info "backup time base: local time"
   fi
-  local BACKUP="$BACKUP_ROOT/$NOW"
+  fn_log info "backup name: $(basename "$BACKUP")"
 
   # ---
   # Check for previous backup operations
@@ -349,7 +346,7 @@ fn_backup() {
   # expire existing backups
   # ---
   fn_log info "expiring backups..."
-  fn_expire_backups "$NOW"
+  fn_expire_backups "$(basename "$BACKUP")"
 
   # ---
   # create backup directory
