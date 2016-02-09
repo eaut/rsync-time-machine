@@ -149,13 +149,11 @@ fn_mkdir() {
 }
 
 fn_find_backups() {
-  if [ "$1" == "expired" ]; then
-    if fn_run "[ -d '$EXPIRED_DIR' ]"; then
-      fn_run find "'$EXPIRED_DIR' -maxdepth 1 -type d -name '????-??-??-??????' | sort -r"
-    fi
-  else
-    fn_run find "'$BACKUP_ROOT' -maxdepth 1 -type d -name '????-??-??-??????' | sort -r"
-  fi
+  fn_run find "'$BACKUP_ROOT' -maxdepth 1 -type d -name '????-??-??-??????' | sort -r 2>/dev/null"
+}
+
+fn_find_expired() {
+  fn_run find "'$EXPIRED_DIR' -maxdepth 1 -type d -name '????-??-??-??????' | sort -r 2>/dev/null" 
 }
 
 fn_check_backup_marker() {
@@ -274,14 +272,14 @@ fn_expire_backups() {
 fn_delete_backups() {
   fn_check_backup_marker
   local BACKUP
-  for BACKUP in $(fn_find_backups expired); do
+  for BACKUP in $(fn_find_expired); do
     # work-around: in case of no match, bash returns "*"
     if [ "$BACKUP" != '*' ] && [ -e "$BACKUP" ]; then
       fn_log info "deleting expired backup $(basename "$BACKUP")"
       fn_run rm -rf -- "$BACKUP"
     fi
   done
-  if [[ -z $(fn_find_backups expired) ]]; then
+  if [[ -z $(fn_find_expired) ]]; then
     if fn_run "[ -d '$EXPIRED_DIR' ]"; then
       fn_run rmdir -- "$EXPIRED_DIR"
     fi
@@ -351,7 +349,7 @@ fn_backup() {
   # ---
   # create backup directory
   # ---
-  local LAST_EXPIRED="$(fn_find_backups expired | head -n 1)"
+  local LAST_EXPIRED="$(fn_find_expired | head -n 1)"
 
   if [ -n "$LAST_EXPIRED" ]; then
     # reuse the newest expired backup as the basis for the next rsync
@@ -377,7 +375,7 @@ fn_backup() {
     local NO_SPACE_LEFT="$(grep "No space left on device (28)\|Result too large (34)" "$TMP_RSYNC_LOG")"
 
     if [ -n "$NO_SPACE_LEFT" ]; then
-      if [ -z "$(fn_find_backups expired)" ]; then
+      if [ -z "$(fn_find_expired)" ]; then
         if [[ "$(fn_find_backups | wc -l)" -le 1 ]]; then
           fn_log error "no space left on backup device, and no old backup to expire"
           exit 1
