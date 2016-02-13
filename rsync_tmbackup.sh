@@ -267,7 +267,7 @@ fn_delete_expired_backups() {
   local BACKUP
   for BACKUP in $(fn_find_expired); do
     # work-around: in case of no match, bash returns "*"
-    if [ "$BACKUP" != '*' ] && [ -e "$BACKUP" ]; then
+    if [[ $BACKUP != '*' ]] && [[ -e $BACKUP ]]; then
       fn_log info "deleting expired backup $(basename "$BACKUP")"
       fn_run rm -rf -- "$BACKUP"
     fi
@@ -359,9 +359,9 @@ fn_backup() {
     # Check if error was caused by to little space, TODO: find better way without log parsing
     local NO_SPACE_LEFT="$(grep "No space left on device (28)\|Result too large (34)" "$TMP_RSYNC_LOG")"
 
-    if [ -n "$NO_SPACE_LEFT" ]; then
-      if [ -z "$(fn_find_expired)" ]; then
-        if [[ "$(fn_find_backups | wc -l)" -le 1 ]]; then
+    if [[ -n $NO_SPACE_LEFT ]]; then
+      if [[ -z $(fn_find_expired) ]]; then
+        if [[ $(fn_find_backups | wc -l) -le 1 ]]; then
           fn_log error "no space left on backup device, and no old backup to expire"
           exit 1
         else
@@ -381,7 +381,7 @@ fn_backup() {
   fn_run ln -s -- "$(basename "$BACKUP")" "$BACKUP_ROOT/latest"
 
   # delete expired backups
-  if [ "$OPT_KEEP_EXPIRED" != "true" ]; then
+  if [[ $OPT_KEEP_EXPIRED != "true" ]]; then
     fn_delete_expired_backups
   fi
 
@@ -474,11 +474,10 @@ fn_diff() {
 
 trap "exit 1" SIGINT # exit with error when CTRL+C is pressed
 trap fn_cleanup EXIT # clean up on exit
-
 export IFS=$'\n' # Better for handling spaces in filenames.
 
 # parse command line arguments
-while [ "$#" -gt 0 ]; do
+while [[ $# -gt 0 ]]; do
   ARG="$1"
   shift
   case "$ARG" in
@@ -497,7 +496,7 @@ while [ "$#" -gt 0 ]; do
       OPT_KEEP_EXPIRED="true"
       ;;
     --ssh-opt)
-      if [ "$#" -lt 1 ]; then
+      if [[ $# -lt 1 ]]; then
         fn_log error "Wrong number of arguments for command '$ARG'."
         exit 1
       fi
@@ -505,7 +504,7 @@ while [ "$#" -gt 0 ]; do
       shift
       ;;
     init)
-      if [ "$#" -lt 1 ] || [ "$#" -gt 2 ]; then
+      if [[ $# -lt 1 ]] || [[ $# -gt 2 ]]; then
         fn_log error "Wrong number of arguments for command '$ARG'."
         exit 1
       fi
@@ -513,7 +512,7 @@ while [ "$#" -gt 0 ]; do
       exit 0
       ;;
     diff)
-      if [ "$#" -ne 2 ]; then
+      if [[ $# -ne 2 ]]; then
         fn_log error "Wrong number of arguments for command '$ARG'."
         exit 1
       fi
@@ -521,7 +520,7 @@ while [ "$#" -gt 0 ]; do
       exit 0
       ;;
     backup)
-      if [ "$#" -lt 2 ] || [ "$#" -gt 3 ]; then
+      if [[ $# -lt 2 ]] || [[ $# -gt 3 ]]; then
         fn_log error "Wrong number of arguments for command '$ARG'."
         exit 1
       fi

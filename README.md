@@ -137,7 +137,7 @@ side is set to either bash or sh.
 The MIT License (MIT)
 
 Copyright (c) 2013-2014 Laurent Cozic  
-Copyright (c) 2015 eaut
+Copyright (c) 2015-16 eaut
 
 Permission is hereby granted, free of charge, to any person obtaining a copy
 of this software and associated documentation files (the "Software"), to deal
