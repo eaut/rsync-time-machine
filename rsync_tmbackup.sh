@@ -87,25 +87,6 @@ fn_cleanup() {
   [[ $OPT_SYSLOG == "true" ]] && exec 40>&- # close redirection to logger
 }
 
-fn_set_dest_folder() {
-  # check if destination is remote
-  if [[ $1 =~ ([A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+):(.+) ]]; then
-    BACKUP_HOST="${BASH_REMATCH[1]}"
-    BACKUP_ROOT="${BASH_REMATCH[2]}"
-    fn_log info "backup location: $BACKUP_HOST:$BACKUP_ROOT"
-  else
-    BACKUP_HOST=""
-    BACKUP_ROOT="$1"
-    fn_log info "backup location: $BACKUP_ROOT"
-  fi
-  if fn_run "[ ! -d '$BACKUP_ROOT' ]"; then
-    fn_log error "backup location $BACKUP_ROOT does not exist."
-    exit 1
-  fi
-  BACKUP_MARKER_FILE="$BACKUP_ROOT/backup.marker"
-  EXPIRED_DIR="$BACKUP_ROOT/expired"
-}
-
 fn_run() {
   # IMPORTANT:
   #   commands or command sequences that make use of pipes, redirection, 
@@ -128,6 +109,32 @@ fn_run() {
   fi
 }
 
+fn_mkdir() {
+  if ! fn_run mkdir -p -- "$1"; then
+    fn_log error "creation of directory $1 failed."
+    exit 1
+  fi
+}
+
+fn_set_dest_folder() {
+  # check if destination is remote
+  if [[ $1 =~ ([A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+):(.+) ]]; then
+    BACKUP_HOST="${BASH_REMATCH[1]}"
+    BACKUP_ROOT="${BASH_REMATCH[2]}"
+    fn_log info "backup location: $BACKUP_HOST:$BACKUP_ROOT"
+  else
+    BACKUP_HOST=""
+    BACKUP_ROOT="$1"
+    fn_log info "backup location: $BACKUP_ROOT"
+  fi
+  if fn_run "[ ! -d '$BACKUP_ROOT' ]"; then
+    fn_log error "backup location $BACKUP_ROOT does not exist."
+    exit 1
+  fi
+  BACKUP_MARKER_FILE="$BACKUP_ROOT/backup.marker"
+  EXPIRED_DIR="$BACKUP_ROOT/expired"
+}
+
 fn_parse_date() {
   # Converts YYYY-MM-DD-HHMMSS to YYYY-MM-DD HH:MM:SS and then to Unix Epoch.
   local DATE_OPTIONS=()
@@ -137,13 +144,6 @@ fn_parse_date() {
     *)             DATE_OPTIONS+=("-d" "${1:0:10} ${1:11:2}:${1:13:2}:${1:15:2}") ;;
   esac
   date "${DATE_OPTIONS[@]}" "+%s"
-}
-
-fn_mkdir() {
-  if ! fn_run mkdir -p -- "$1"; then
-    fn_log error "creation of directory $1 failed."
-    exit 1
-  fi
 }
 
 fn_find_backups() {
@@ -279,6 +279,60 @@ fn_delete_expired_backups() {
   fi
 }
 
+fn_rsync() {
+  local SRC="$1"
+  local DST="$2"
+  local PREV_DST="$3"
+  local EXCLUDE_FILE="$4"
+
+  local RS_ARG=()
+  RS_ARG+=("--archive" "--hard-links" "--numeric-ids")
+  RS_ARG+=("--delete" "--delete-excluded")
+  RS_ARG+=("--one-file-system")
+  RS_ARG+=("--itemize-changes" "--human-readable")
+  RS_ARG+=("--log-file=$TMP_RSYNC_LOG")
+
+  if [[ $OPT_VERBOSE == "true" ]]; then
+    RS_ARG+=("--verbose")
+  fi
+  if [[ -n $SSH_ARG ]]; then
+    RS_ARG+=("-e" "$SSH_CMD $SSH_ARG")
+  fi
+  if [[ -n $EXCLUDE_FILE ]]; then
+    RS_ARG+=("--exclude-from=$EXCLUDE_FILE")
+  fi
+  if [[ -n $PREV_DST ]]; then
+    # If the path is relative, it needs to be relative to the destination. To keep
+    # it simple, just use an absolute path. See http://serverfault.com/a/210058/118679
+    PREV_DST="$(fn_run "cd '$PREV_DST'; pwd")"
+    fn_log info "doing incremental backup from $(basename "$PREV_DST")"
+    RS_ARG+=("--link-dest=$PREV_DST")
+  fi
+  RS_ARG+=("--" "${SRC%/}/")
+  if [[ -n $BACKUP_HOST ]]; then
+    RS_ARG+=("$BACKUP_HOST:$DST")
+  else
+    RS_ARG+=("$DST")
+  fi
+
+  fn_log info "rsync started for backup $(basename "$DST")"
+
+  local G_ARG=("--line-buffered" "-v" "-E" "^[*]?deleting|^$|^.[Ld]\.\.t\.\.\.\.\.\.")
+
+  # avoid separating array elements with newlines
+  ( IFS=" " ; fn_log verbose "rsync ${RS_ARG[@]} | grep ${G_ARG[@]}" )
+
+  if [[ $OPT_SYSLOG != "true" ]]; then
+    rsync "${RS_ARG[@]}" | grep "${G_ARG[@]}"
+  else
+    rsync "${RS_ARG[@]}" | grep "${G_ARG[@]}" | tee /dev/stderr 2>&40
+  fi
+
+  local RSYNC_EXIT="${PIPESTATUS[0]}"
+  fn_log info "rsync end"
+  return "$RSYNC_EXIT"
+}
+
 fn_backup() {
   fn_log info "backup start"
 
@@ -388,60 +442,6 @@ fn_backup() {
   # end backup
   fn_run rm -f -- "$INPROGRESS_FILE"
   fn_log info "backup $(basename "$BACKUP") completed"
-}
-
-fn_rsync() {
-  local SRC="$1"
-  local DST="$2"
-  local PREV_DST="$3"
-  local EXCLUDE_FILE="$4"
-
-  local RS_ARG=()
-  RS_ARG+=("--archive" "--hard-links" "--numeric-ids")
-  RS_ARG+=("--delete" "--delete-excluded")
-  RS_ARG+=("--one-file-system")
-  RS_ARG+=("--itemize-changes" "--human-readable")
-  RS_ARG+=("--log-file=$TMP_RSYNC_LOG")
-
-  if [[ $OPT_VERBOSE == "true" ]]; then
-    RS_ARG+=("--verbose")
-  fi
-  if [[ -n $SSH_ARG ]]; then
-    RS_ARG+=("-e" "$SSH_CMD $SSH_ARG")
-  fi
-  if [[ -n $EXCLUDE_FILE ]]; then
-    RS_ARG+=("--exclude-from=$EXCLUDE_FILE")
-  fi
-  if [[ -n $PREV_DST ]]; then
-    # If the path is relative, it needs to be relative to the destination. To keep
-    # it simple, just use an absolute path. See http://serverfault.com/a/210058/118679
-    PREV_DST="$(fn_run "cd '$PREV_DST'; pwd")"
-    fn_log info "doing incremental backup from $(basename "$PREV_DST")"
-    RS_ARG+=("--link-dest=$PREV_DST")
-  fi
-  RS_ARG+=("--" "${SRC%/}/")
-  if [[ -n $BACKUP_HOST ]]; then
-    RS_ARG+=("$BACKUP_HOST:$DST")
-  else
-    RS_ARG+=("$DST")
-  fi
-
-  fn_log info "rsync started for backup $(basename "$DST")"
-
-  local G_ARG=("--line-buffered" "-v" "-E" "^[*]?deleting|^$|^.[Ld]\.\.t\.\.\.\.\.\.")
-
-  # avoid separating array elements with newlines
-  ( IFS=" " ; fn_log verbose "rsync ${RS_ARG[@]} | grep ${G_ARG[@]}" )
-
-  if [[ $OPT_SYSLOG != "true" ]]; then
-    rsync "${RS_ARG[@]}" | grep "${G_ARG[@]}"
-  else
-    rsync "${RS_ARG[@]}" | grep "${G_ARG[@]}" | tee /dev/stderr 2>&40
-  fi
-
-  local RSYNC_EXIT="${PIPESTATUS[0]}"
-  fn_log info "rsync end"
-  return "$RSYNC_EXIT"
 }
 
 fn_init() {
