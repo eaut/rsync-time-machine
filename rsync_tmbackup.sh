@@ -83,13 +83,8 @@ fn_log() {
 }
 
 fn_cleanup() {
-  if [ -f "$TMP_RSYNC_LOG" ]; then
-    rm -f -- "$TMP_RSYNC_LOG"
-  fi
-  # close redirection to logger
-  if [ "$OPT_SYSLOG" == "true" ]; then
-    exec 40>&-
-  fi
+  [[ -f $TMP_RSYNC_LOG ]] && rm -f -- "$TMP_RSYNC_LOG"
+  [[ $OPT_SYSLOG == "true" ]] && exec 40>&- # close redirection to logger
 }
 
 fn_set_dest_folder() {
@@ -160,9 +155,7 @@ fn_find_expired() {
 }
 
 fn_check_backup_marker() {
-  #
   # TODO: check that the destination supports hard links
-  #
   if fn_run "[ ! -f '$BACKUP_MARKER_FILE' ]"; then
     fn_log error "Destination does not appear to be a backup location - no backup marker file found."
     exit 1
@@ -175,7 +168,6 @@ fn_check_backup_marker() {
 
 fn_import_backup_marker() {
   fn_check_backup_marker
-  # read backup configuration from backup marker
   if [[ -n $(fn_run cat "$BACKUP_MARKER_FILE") ]]; then
     eval "$(fn_run cat "$BACKUP_MARKER_FILE")"
     fn_log info "configuration imported from backup marker"
@@ -288,7 +280,6 @@ fn_delete_expired_backups() {
 }
 
 fn_backup() {
-
   fn_log info "backup start"
 
   local SRC_FOLDER="$1"
@@ -321,7 +312,6 @@ fn_backup() {
   # ---
   local INPROGRESS_FILE="$BACKUP_ROOT/backup.inprogress"
   local PREV_BACKUP="$(fn_find_backups | head -n 1)"
-
   if fn_run "[ -f '$INPROGRESS_FILE' ]"; then
     if pgrep -F "$INPROGRESS_FILE" "$APPNAME" > /dev/null 2>&1 ; then
       fn_log error "previous backup task is still active - aborting."
@@ -347,7 +337,6 @@ fn_backup() {
   # create backup directory
   # ---
   local LAST_EXPIRED="$(fn_find_expired | head -n 1)"
-
   if [ -n "$LAST_EXPIRED" ]; then
     # reuse the newest expired backup as the basis for the next rsync
     # operation. this significantly speeds up backup times!
@@ -363,7 +352,6 @@ fn_backup() {
   # Run rsync in a loop to handle the "no space left on device" logic.
   # ---
   TMP_RSYNC_LOG=$(mktemp "/tmp/${APPNAME}_XXXXXXXXXX")
-
   while ! fn_rsync "$SRC_FOLDER" "$BACKUP" "$PREV_BACKUP" "$EXCLUDE_FILE" ; do
 
     fn_log warning "rsync error exit code: $?"
@@ -403,7 +391,6 @@ fn_backup() {
 }
 
 fn_rsync() {
-
   local SRC="$1"
   local DST="$2"
   local PREV_DST="$3"
