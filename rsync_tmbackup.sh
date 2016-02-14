@@ -128,7 +128,7 @@ fn_set_dest_folder() {
     fn_log info "backup location: $BACKUP_ROOT"
   fi
   if fn_run "[ ! -d '$BACKUP_ROOT' ]"; then
-    fn_log error "backup location $BACKUP_ROOT does not exist."
+    fn_log error "backup location $BACKUP_ROOT not found"
     exit 1
   fi
   BACKUP_MARKER_FILE="$BACKUP_ROOT/backup.marker"
@@ -157,7 +157,7 @@ fn_find_expired() {
 fn_check_backup_marker() {
   # TODO: check that the destination supports hard links
   if fn_run "[ ! -f '$BACKUP_MARKER_FILE' ]"; then
-    fn_log error "Destination does not appear to be a backup location - no backup marker file found."
+    fn_log error "aborting, backup marker file $BACKUP_MARKER_FILE not found"
     exit 1
   fi
   if ! fn_run "touch -c '$BACKUP_MARKER_FILE' &> /dev/null"; then
