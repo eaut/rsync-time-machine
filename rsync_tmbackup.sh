@@ -292,15 +292,9 @@ fn_rsync() {
   RS_ARG+=("--itemize-changes" "--human-readable")
   RS_ARG+=("--log-file=$TMP_RSYNC_LOG")
 
-  if [[ $OPT_VERBOSE == "true" ]]; then
-    RS_ARG+=("--verbose")
-  fi
-  if [[ -n $SSH_ARG ]]; then
-    RS_ARG+=("-e" "$SSH_CMD $SSH_ARG")
-  fi
-  if [[ -n $EXCLUDE_FILE ]]; then
-    RS_ARG+=("--exclude-from=$EXCLUDE_FILE")
-  fi
+  [[ $OPT_VERBOSE == "true" ]] && RS_ARG+=("--verbose")
+  [[ -n $SSH_ARG ]] && RS_ARG+=("-e" "$SSH_CMD $SSH_ARG")
+  [[ -n $EXCLUDE_FILE ]] && RS_ARG+=("--exclude-from=$EXCLUDE_FILE")
   if [[ -n $PREV_DST ]]; then
     # If the path is relative, it needs to be relative to the destination. To keep
     # it simple, just use an absolute path. See http://serverfault.com/a/210058/118679
@@ -316,9 +310,7 @@ fn_rsync() {
   fi
 
   fn_log info "rsync started for backup $(basename "$DST")"
-
   local G_ARG=("--line-buffered" "-v" "-E" "^[*]?deleting|^$|^.[Ld]\.\.t\.\.\.\.\.\.")
-
   # avoid separating array elements with newlines
   ( IFS=" " ; fn_log verbose "rsync ${RS_ARG[@]} | grep ${G_ARG[@]}" )
 
