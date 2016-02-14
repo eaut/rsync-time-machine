@@ -161,7 +161,7 @@ fn_check_backup_marker() {
     exit 1
   fi
   if ! fn_run "touch -c '$BACKUP_MARKER_FILE' &> /dev/null"; then
-    fn_log error "no write permission for this backup location - aborting."
+    fn_log error "aborting, no write permission for this backup location"
     exit 1
   fi
 }
@@ -172,7 +172,7 @@ fn_import_backup_marker() {
     eval "$(fn_run cat "$BACKUP_MARKER_FILE")"
     fn_log info "configuration imported from backup marker"
   else
-    fn_log info "no configuration imported from backup marker - using defaults"
+    fn_log info "no configuration imported from backup marker, using defaults"
   fi
 }
 
@@ -368,10 +368,10 @@ fn_backup() {
   local PREV_BACKUP="$(fn_find_backups | head -n 1)"
   if fn_run "[ -f '$INPROGRESS_FILE' ]"; then
     if pgrep -F "$INPROGRESS_FILE" "$APPNAME" > /dev/null 2>&1 ; then
-      fn_log error "previous backup task is still active - aborting."
+      fn_log error "aborting, previous backup operation still active"
       exit 1
     fi
-    fn_log info "previous backup $PREV_BACKUP was interrupted - resuming from there."
+    fn_log info "resuming unfinished backup $PREV_BACKUP"
     fn_run "echo '$$' > '$INPROGRESS_FILE'"
     # last backup is moved to current backup folder so that it can be resumed.
     fn_run mv -- "$PREV_BACKUP" "$BACKUP"
