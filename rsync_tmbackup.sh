@@ -110,7 +110,7 @@ fn_run() {
 }
 
 fn_mkdir() {
-  if ! fn_run mkdir -p -- "$1"; then
+  if ! fn_run "mkdir -p -- '$1'"; then
     fn_log error "creation of directory $1 failed."
     exit 1
   fi
@@ -147,11 +147,13 @@ fn_parse_date() {
 }
 
 fn_find_backups() {
-  fn_run find "'$BACKUP_ROOT' -maxdepth 1 -type d -name '????-??-??-??????' | sort -r 2>/dev/null"
+  fn_run "find '$BACKUP_ROOT' -maxdepth 1 -type d -name '????-??-??-??????' | sort -r 2>/dev/null"
 }
 
 fn_find_expired() {
-  fn_run find "'$BACKUP_EXPIRED_DIR' -maxdepth 1 -type d -name '????-??-??-??????' | sort -r 2>/dev/null"
+  if fn_run "[ -d '$BACKUP_EXPIRED_DIR' ]"; then
+    fn_run "find '$BACKUP_EXPIRED_DIR' -maxdepth 1 -type d -name '????-??-??-??????' | sort -r 2>/dev/null"
+  fi
 }
 
 fn_check_backup_marker() {
@@ -404,7 +406,6 @@ fn_backup() {
     if [[ $RETVAL -eq 0 ]]; then
       break
     else
-      fn_log warning "rsync error code $RETVAL"
       # Check if error was caused by to little space, TODO: find better way without log parsing
       local NO_SPACE_LEFT="$(grep "No space left on device (28)\|Result too large (34)" "$TMP_RSYNC_LOG")"
       if [[ -n $NO_SPACE_LEFT ]]; then
@@ -413,16 +414,18 @@ fn_backup() {
             fn_log error "no space left on backup device and no old backup to expire"
             exit 1
           else
-            fn_log warning "no space left on backup device, expiring oldest backup"
+            fn_log warning "no space left on backup device"
+            fn_log info "expiring oldest backup $(basename "$(fn_find_backups | tail -n 1)")"
             fn_mark_expired "$(fn_find_backups | tail -n 1)"
+            PREV_BACKUP="$(fn_find_backups | sed -n 2p)"
           fi
         fi
         fn_delete_expired_backups
-      else
-        fn_log error "rsync error, exiting"
-        exit 1
+        continue
       fi
     fi
+    fn_log error "rsync error $RETVAL, aborting"
+    exit 1
   done
 
   # Add symlink to last successful backup
