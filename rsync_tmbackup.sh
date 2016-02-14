@@ -398,27 +398,30 @@ fn_backup() {
   # Run rsync in a loop to handle the "no space left on device" logic.
   # ---
   TMP_RSYNC_LOG=$(mktemp "/tmp/${APPNAME}_XXXXXXXXXX")
-  while ! fn_rsync "$SRC_FOLDER" "$BACKUP" "$PREV_BACKUP" "$EXCLUDE_FILE" ; do
-
-    fn_log warning "rsync error exit code: $?"
-
-    # Check if error was caused by to little space, TODO: find better way without log parsing
-    local NO_SPACE_LEFT="$(grep "No space left on device (28)\|Result too large (34)" "$TMP_RSYNC_LOG")"
-
-    if [[ -n $NO_SPACE_LEFT ]]; then
-      if [[ -z $(fn_find_expired) ]]; then
-        if [[ $(fn_find_backups | wc -l) -le 1 ]]; then
-          fn_log error "no space left on backup device, and no old backup to expire"
-          exit 1
-        else
-          fn_log warning "no space left on backup device, expiring oldest backup"
-          fn_mark_expired "$(fn_find_backups | tail -n 1)"
-        fi
-      fi
-      fn_delete_expired_backups
+  while : ; do
+    fn_rsync "$SRC_FOLDER" "$BACKUP" "$PREV_BACKUP" "$EXCLUDE_FILE"
+    local RETVAL=$?
+    if [[ $RETVAL -eq 0 ]]; then
+      break
     else
-      fn_log error "rsync error - exiting"
-      exit 1
+      fn_log warning "rsync error code $RETVAL"
+      # Check if error was caused by to little space, TODO: find better way without log parsing
+      local NO_SPACE_LEFT="$(grep "No space left on device (28)\|Result too large (34)" "$TMP_RSYNC_LOG")"
+      if [[ -n $NO_SPACE_LEFT ]]; then
+        if [[ -z $(fn_find_expired) ]]; then
+          if [[ $(fn_find_backups | wc -l) -le 1 ]]; then
+            fn_log error "no space left on backup device and no old backup to expire"
+            exit 1
+          else
+            fn_log warning "no space left on backup device, expiring oldest backup"
+            fn_mark_expired "$(fn_find_backups | tail -n 1)"
+          fi
+        fi
+        fn_delete_expired_backups
+      else
+        fn_log error "rsync error, exiting"
+        exit 1
+      fi
     fi
   done
 
