@@ -86,12 +86,12 @@ Old backups are automatically expired and purged - default retention times see b
 marker file is also used as configuration file for backup retention times.
 
 ```
-RETENTION_WIN_ALL="$((4 * 3600))"        # within 4 hrs keep all backups
-RETENTION_WIN_01H="$((1 * 24 * 3600))"   # within 24 hrs keep 1 backup per hour
-RETENTION_WIN_04H="$((3 * 24 * 3600))"   # within 3 days keep 1 backup per 4 hours
-RETENTION_WIN_08H="$((14 * 24 * 3600))"  # within 2 weeks keep 1 backup per 8 hours
-RETENTION_WIN_24H="$((28 * 24 * 3600))"  # within 4 weeks keep 1 backup per day
-                                         # thereafter keep the most recent backup of each month
+RETENTION_WIN_ALL=$((4 * 3600))        # within 4 hrs keep all backups
+RETENTION_WIN_01H=$((1 * 24 * 3600))   # within 24 hrs keep 1 backup per hour
+RETENTION_WIN_04H=$((3 * 24 * 3600))   # within 3 days keep 1 backup per 4 hours
+RETENTION_WIN_08H=$((14 * 24 * 3600))  # within 2 weeks keep 1 backup per 8 hours
+RETENTION_WIN_24H=$((28 * 24 * 3600))  # within 4 weeks keep 1 backup per day
+                                       # thereafter keep the most recent backup of each month
 ```
 
 ## Features
