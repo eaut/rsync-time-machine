@@ -25,7 +25,7 @@ SSH_ARG=""
 BACKUP_HOST=""
 BACKUP_ROOT=""
 BACKUP_MARKER_FILE=""
-EXPIRED_DIR=""
+BACKUP_EXPIRED_DIR=""
 TMP_RSYNC_LOG=""
 
 # -----------------------------------------------------------------------------
@@ -89,7 +89,7 @@ fn_cleanup() {
 
 fn_run() {
   # IMPORTANT:
-  #   commands or command sequences that make use of pipes, redirection, 
+  #   commands or command sequences that make use of pipes, redirection,
   #   semicolons or conditional expressions have to passed as quoted strings
   if [[ -n $BACKUP_HOST ]]; then
     if [[ -n $SSH_ARG ]]; then
@@ -132,7 +132,7 @@ fn_set_dest_folder() {
     exit 1
   fi
   BACKUP_MARKER_FILE="$BACKUP_ROOT/backup.marker"
-  EXPIRED_DIR="$BACKUP_ROOT/expired"
+  BACKUP_EXPIRED_DIR="$BACKUP_ROOT/expired"
 }
 
 fn_parse_date() {
@@ -151,7 +151,7 @@ fn_find_backups() {
 }
 
 fn_find_expired() {
-  fn_run find "'$EXPIRED_DIR' -maxdepth 1 -type d -name '????-??-??-??????' | sort -r 2>/dev/null" 
+  fn_run find "'$BACKUP_EXPIRED_DIR' -maxdepth 1 -type d -name '????-??-??-??????' | sort -r 2>/dev/null"
 }
 
 fn_check_backup_marker() {
@@ -178,8 +178,8 @@ fn_import_backup_marker() {
 
 fn_mark_expired() {
   fn_check_backup_marker
-  fn_mkdir "$EXPIRED_DIR"
-  fn_run mv -- "$1" "$EXPIRED_DIR/"
+  fn_mkdir "$BACKUP_EXPIRED_DIR"
+  fn_run mv -- "$1" "$BACKUP_EXPIRED_DIR/"
 }
 
 fn_expire_backups() {
@@ -273,8 +273,8 @@ fn_delete_expired_backups() {
     fi
   done
   if [[ -z $(fn_find_expired) ]]; then
-    if fn_run "[ -d '$EXPIRED_DIR' ]"; then
-      fn_run rmdir -- "$EXPIRED_DIR"
+    if fn_run "[ -d '$BACKUP_EXPIRED_DIR' ]"; then
+      fn_run rmdir -- "$BACKUP_EXPIRED_DIR"
     fi
   fi
 }
