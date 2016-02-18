@@ -274,11 +274,6 @@ fn_delete_expired_backups() {
       fn_run rm -rf -- "$BACKUP"
     fi
   done
-  if [[ -z $(fn_find_expired) ]]; then
-    if fn_run "[ -d '$BACKUP_EXPIRED_DIR' ]"; then
-      fn_run rmdir -- "$BACKUP_EXPIRED_DIR"
-    fi
-  fi
 }
 
 fn_rsync() {
