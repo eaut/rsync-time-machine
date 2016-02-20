@@ -458,7 +458,7 @@ __EOF__
 }
 
 fn_diff() {
-  rsync --dry-run -auvi "${1%/}/" "${2%/}/" | grep -E -v '^sending|^$|^sent.*sec$|^total.*RUN\)'
+  rsync --dry-run -auvi "${1%/}/" "$2" | grep -E -v '^sending|^$|^sent.*sec$|^total.*RUN\)'
 }
 
 # -----------------------------------------------------------------------------
