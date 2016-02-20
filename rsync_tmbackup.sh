@@ -109,8 +109,12 @@ fn_run() {
   fi
 }
 
+fn_quote() {
+  echo -n "'${1//\'/\'\\\'\'}'"
+}
+
 fn_mkdir() {
-  if ! fn_run "mkdir -p -- '$1'"; then
+  if ! fn_run "mkdir -p -- $(fn_quote "$1")"; then
     fn_log error "creation of directory $1 failed."
     exit 1
   fi
@@ -127,7 +131,7 @@ fn_set_dest_folder() {
     BACKUP_ROOT="$1"
     fn_log info "backup location: $BACKUP_ROOT"
   fi
-  if fn_run "[ ! -d '$BACKUP_ROOT' ]"; then
+  if fn_run "[ ! -d $(fn_quote "$BACKUP_ROOT") ]"; then
     fn_log error "backup location $BACKUP_ROOT not found"
     exit 1
   fi
@@ -147,22 +151,22 @@ fn_parse_date() {
 }
 
 fn_find_backups() {
-  fn_run "find '$BACKUP_ROOT' -maxdepth 1 -type d -name '????-??-??-??????' | sort -r 2>/dev/null"
+  fn_run "find $(fn_quote "$BACKUP_ROOT") -maxdepth 1 -type d -name '????-??-??-??????' | sort -r 2>/dev/null"
 }
 
 fn_find_expired() {
-  if fn_run "[ -d '$BACKUP_EXPIRED_DIR' ]"; then
-    fn_run "find '$BACKUP_EXPIRED_DIR' -maxdepth 1 -type d -name '????-??-??-??????' | sort -r 2>/dev/null"
+  if fn_run "[ -d $(fn_quote "$BACKUP_EXPIRED_DIR") ]"; then
+    fn_run "find $(fn_quote "$BACKUP_EXPIRED_DIR") -maxdepth 1 -type d -name '????-??-??-??????' | sort -r 2>/dev/null"
   fi
 }
 
 fn_check_backup_marker() {
   # TODO: check that the destination supports hard links
-  if fn_run "[ ! -f '$BACKUP_MARKER_FILE' ]"; then
+  if fn_run "[ ! -f $(fn_quote "$BACKUP_MARKER_FILE") ]"; then
     fn_log error "aborting, backup marker file $BACKUP_MARKER_FILE not found"
     exit 1
   fi
-  if ! fn_run "touch -c '$BACKUP_MARKER_FILE' &> /dev/null"; then
+  if ! fn_run "touch -c $(fn_quote "$BACKUP_MARKER_FILE") &> /dev/null"; then
     fn_log error "aborting, no write permission for this backup location"
     exit 1
   fi
@@ -170,8 +174,8 @@ fn_check_backup_marker() {
 
 fn_import_backup_marker() {
   fn_check_backup_marker
-  if [[ -n $(fn_run cat "$BACKUP_MARKER_FILE") ]]; then
-    eval "$(fn_run cat "$BACKUP_MARKER_FILE")"
+  if [[ -n $(fn_run cat $(fn_quote "$BACKUP_MARKER_FILE")) ]]; then
+    eval "$(fn_run cat $(fn_quote "$BACKUP_MARKER_FILE"))"
     fn_log info "configuration imported from backup marker"
   else
     fn_log info "no configuration imported from backup marker, using defaults"
@@ -181,7 +185,7 @@ fn_import_backup_marker() {
 fn_mark_expired() {
   fn_check_backup_marker
   fn_mkdir "$BACKUP_EXPIRED_DIR"
-  fn_run mv -- "$1" "$BACKUP_EXPIRED_DIR/"
+  fn_run mv -- $(fn_quote "$1") $(fn_quote "$BACKUP_EXPIRED_DIR/")
 }
 
 fn_expire_backups() {
@@ -271,7 +275,7 @@ fn_delete_expired_backups() {
     # work-around: in case of no match, bash returns "*"
     if [[ $BACKUP != '*' ]] && [[ -e $BACKUP ]]; then
       fn_log info "deleting expired backup $(basename "$BACKUP")"
-      fn_run rm -rf -- "$BACKUP"
+      fn_run rm -rf -- $(fn_quote "$BACKUP")
     fi
   done
 }
@@ -295,7 +299,7 @@ fn_rsync() {
   if [[ -n $PREV_DST ]]; then
     # If the path is relative, it needs to be relative to the destination. To keep
     # it simple, just use an absolute path. See http://serverfault.com/a/210058/118679
-    PREV_DST="$(fn_run "cd '$PREV_DST'; pwd")"
+    PREV_DST="$(fn_run "cd $(fn_quote "$PREV_DST"); pwd")"
     fn_log info "doing incremental backup from $(basename "$PREV_DST")"
     RS_ARG+=("--link-dest=$PREV_DST")
   fi
@@ -355,19 +359,19 @@ fn_backup() {
   # ---
   local INPROGRESS_FILE="$BACKUP_ROOT/backup.inprogress"
   local PREV_BACKUP="$(fn_find_backups | head -n 1)"
-  if fn_run "[ -f '$INPROGRESS_FILE' ]"; then
+  if fn_run "[ -f $(fn_quote "$INPROGRESS_FILE") ]"; then
     if pgrep -F "$INPROGRESS_FILE" "$APPNAME" > /dev/null 2>&1 ; then
       fn_log error "aborting, previous backup operation still active"
       exit 1
     fi
     fn_log info "resuming unfinished backup $PREV_BACKUP"
-    fn_run "echo '$$' > '$INPROGRESS_FILE'"
+    fn_run "echo '$$' > $(fn_quote "$INPROGRESS_FILE")"
     # last backup is moved to current backup folder so that it can be resumed.
-    fn_run mv -- "$PREV_BACKUP" "$BACKUP"
+    fn_run mv -- $(fn_quote "$PREV_BACKUP") $(fn_quote "$BACKUP")
     # 2nd to last backup becomes last backup.
     PREV_BACKUP="$(fn_find_backups | sed -n 2p)"
   else
-    fn_run "echo '$$' > '$INPROGRESS_FILE'"
+    fn_run "echo '$$' > $(fn_quote "$INPROGRESS_FILE")"
   fi
 
   # ---
@@ -385,7 +389,7 @@ fn_backup() {
     # operation. this significantly speeds up backup times!
     # to work rsync needs the following options: --delete --delete-excluded
     fn_log info "reusing expired backup $(basename "$LAST_EXPIRED")"
-    fn_run mv -- "$LAST_EXPIRED" "$BACKUP"
+    fn_run mv -- $(fn_quote "$LAST_EXPIRED") $(fn_quote "$BACKUP")
   else
     # a new backup directory is needed
     fn_mkdir "$BACKUP"
@@ -424,8 +428,8 @@ fn_backup() {
   done
 
   # Add symlink to last successful backup
-  fn_run rm -f -- "$BACKUP_ROOT/latest"
-  fn_run ln -s -- "$(basename "$BACKUP")" "$BACKUP_ROOT/latest"
+  fn_run rm -f -- $(fn_quote "$BACKUP_ROOT/latest")
+  fn_run ln -s -- "$(basename "$BACKUP")" $(fn_quote "$BACKUP_ROOT/latest")
 
   # delete expired backups
   if [[ $OPT_KEEP_EXPIRED != "true" ]]; then
@@ -433,7 +437,7 @@ fn_backup() {
   fi
 
   # end backup
-  fn_run rm -f -- "$INPROGRESS_FILE"
+  fn_run rm -f -- $(fn_quote "$INPROGRESS_FILE")
   fn_log info "backup $(basename "$BACKUP") completed"
 }
 
@@ -451,9 +455,9 @@ fn_init() {
     RETENTION_WIN_24H=$RETENTION_WIN_24H
 __EOF__
   )
-  fn_run "echo '$DEFAULT_CONFIG' >> '$BACKUP_MARKER_FILE'"
+  fn_run "echo '$DEFAULT_CONFIG' >> $(fn_quote "$BACKUP_MARKER_FILE")"
   # since we excute this file, access should be limited
-  fn_run chmod -- 600 "$BACKUP_MARKER_FILE"
+  fn_run chmod -- 600 $(fn_quote "$BACKUP_MARKER_FILE")
   fn_log info "created backup marker $BACKUP_MARKER_FILE"
 }
 
