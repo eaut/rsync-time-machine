@@ -7,12 +7,12 @@ system or file system specific dependencies like the original.
 
 ## Installation
 
-	git clone https://github.com/eaut/rsync-time-backup
+	git clone https://github.com/eaut/rsync-time-machine
 
 ## Usage
 
 ```
-rsync_tmbackup.sh [OPTIONS] command [ARGS]
+tmbackup.sh [OPTIONS] command [ARGS]
 
 Commands:
 
@@ -52,10 +52,10 @@ Options:
 ### local backup example
 
 	# setup backup location
-	rsync_tmbackup.sh init /path/to/backup
+	tmbackup.sh init /path/to/backup
 
 	# backup all files from source except those mentioned in the backup.exlude file
-	rsync_tmbackup.sh backup /path/to/source /path/to/backup /path/to/backup/backup.exclude
+	tmbackup.sh backup /path/to/source /path/to/backup /path/to/backup/backup.exclude
 
 An optional exclude file can be added to the backup command that is passed as `--exclude-from` file to rsync.
 
@@ -71,14 +71,14 @@ To backup to a remote server you need ssh key-based authentication
 between client and server. Backup source has to be local.
 
 	# destinations must be in the form of <user>@<host>:<directory>
-	rsync_tmbackup.sh backup /path/to/source user@host:/path/to/backup
+	tmbackup.sh backup /path/to/source user@host:/path/to/backup
 
 ### crontab example
 
 You can log everything to syslog by using "-s" or "--syslog".
 
 	# backup /home at quarter past every hour to /mnt/backup
-	15 * * * * rsync_tmbackup.sh -v -s -k backup /home /mnt/backup /mnt/backup/backup.exclude
+	15 * * * * tmbackup.sh -v -s -k backup /home /mnt/backup /mnt/backup/backup.exclude
 
 ### customize backup retention times
 
