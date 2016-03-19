@@ -360,7 +360,7 @@ fn_backup() {
   local INPROGRESS_FILE="$BACKUP_ROOT/backup.inprogress"
   local PREV_BACKUP="$(fn_find_backups | head -n 1)"
   if fn_run "[ -f $(fn_quote "$INPROGRESS_FILE") ]"; then
-    if pgrep -F "$INPROGRESS_FILE" "$APPNAME" > /dev/null 2>&1 ; then
+    if pgrep "$APPNAME" | grep "$(fn_run cat $(fn_quote "$INPROGRESS_FILE"))" &>/dev/null ; then
       fn_log error "aborting, previous backup operation still active"
       exit 1
     fi
