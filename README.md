@@ -7,7 +7,7 @@ system or file system specific dependencies like the original.
 
 ## Installation
 
-	git clone https://github.com/eaut/rsync-time-machine
+	git clone https://github.com/eaut/rsync-time-backup
 
 ## Usage
 
