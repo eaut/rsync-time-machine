@@ -208,7 +208,7 @@ fn_expire_backups() {
     local BACKUP_TS=$(fn_parse_date "$BACKUP_DATE")
 
     # Skip if failed to parse date...
-    if [[ $BACKUP_TS != +([0-9]) ]]; then
+    if [[ ! $BACKUP_TS =~ ^[0-9]+$ ]]; then
       fn_log warning "Could not parse date: $BACKUP_DATE"
       continue
     fi
