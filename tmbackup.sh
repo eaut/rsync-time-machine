@@ -78,7 +78,7 @@ fn_log() {
   local TYPE="$1"
   local MSG="${@:2}"
   [[ $TYPE == "verbose" ]] && { [[ $OPT_VERBOSE == "true" ]] && TYPE="info" || return ; }
-  [[ $TYPE == "info" ]] && echo "${MSG[@]}" || { MSG=("[${TYPE^^}]" "${MSG[@]}") ; echo "${MSG[@]}" 1>&2 ; }
+  [[ $TYPE == "info" ]] && echo "${MSG[@]}" || { MSG=("[$TYPE]" "${MSG[@]}") ; echo "${MSG[@]}" 1>&2 ; }
   [[ $OPT_SYSLOG == "true" ]] && echo "${MSG[@]}" >&40
 }
 
