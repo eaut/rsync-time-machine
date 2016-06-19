@@ -287,7 +287,8 @@ fn_rsync() {
   local EXCLUDE_FILE="$4"
 
   local RS_ARG=()
-  RS_ARG+=("--archive" "--hard-links" "--numeric-ids")
+  RS_ARG+=("--archive" "--numeric-ids")
+  RS_ARG+=("--hard-links" "--acls" "--xattrs")
   RS_ARG+=("--delete" "--delete-excluded")
   RS_ARG+=("--one-file-system")
   RS_ARG+=("--itemize-changes" "--human-readable")
