@@ -144,7 +144,7 @@ fn_parse_date() {
   local DATE_OPTIONS=()
   [[ $UTC == "true" ]] && DATE_OPTIONS+=("-u")
   case "$OSTYPE" in
-    darwin*|*bsd*) DATE_OPTIONS+=("-j" "-f" "%Y-%m-%d-%H%M%S $1") ;;
+    darwin*|*bsd*) DATE_OPTIONS+=("-j" "-f" "%Y-%m-%d-%H%M%S" "$1") ;;
     *)             DATE_OPTIONS+=("-d" "${1:0:10} ${1:11:2}:${1:13:2}:${1:15:2}") ;;
   esac
   date "${DATE_OPTIONS[@]}" "+%s"
